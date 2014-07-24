@@ -21,7 +21,7 @@ module I18n::Tasks
       def initialize(config = {})
         self.config  = config.except(:base_locale, :locales)
         @base_locale = config[:base_locale]
-        @locales     = config[:locales] || available_locales
+        @locales     = LocaleList.normalize_locale_list(config[:locales].presence || available_locales, base_locale, true)
       end
 
       # get locale tree

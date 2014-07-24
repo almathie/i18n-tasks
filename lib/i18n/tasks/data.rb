@@ -13,9 +13,15 @@ module I18n::Tasks
         adapter = "I18n::Tasks::Data::#{adapter.camelize}" if adapter !~ /[A-Z]/
         conf = conf.except(:adapter, :class).merge(
             base_locale: base_locale,
-            locales:     (normalize_locales(config[:locales]) if config[:locales].present?)
+            locales:     config[:locales]
         )
-        adapter.constantize.new conf
+        adapter.constantize.new(conf).tap do |d|
+          if config[:locales].present?
+            log_verbose "config.locales set to #{d.locales}"
+          else
+            log_verbose "config.locales inferred from data #{d.locales}"
+          end
+        end
       end
     end
 

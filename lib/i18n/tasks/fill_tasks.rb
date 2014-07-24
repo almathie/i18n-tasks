@@ -31,10 +31,7 @@ module I18n::Tasks
     end
 
     def locales_for_update(opts)
-      locales = (Array(opts[:locales] || opts[:locale]).presence || self.locales).map(&:to_s)
-      # make sure base_locale always comes first if present
-      locales = [base_locale] + (locales - [base_locale]) if locales.include?(base_locale)
-      locales
+      LocaleList.normalize_locale_list(opts[:locales] || opts[:locale] || self.locales, base_locale)
     end
   end
 end
