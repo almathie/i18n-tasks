@@ -31,6 +31,11 @@ module I18n::Tasks
             short: :s,
             long:  :strict,
             desc:  %Q(Do not infer dynamic key usage such as `t("category.\#{category.name}")`)
+        },
+        stdin: {
+            short: :s,
+            long:  :stdin,
+            desc:  'Also read locale data from stdin, before the arguments'
         }
     }
 
@@ -183,12 +188,22 @@ module I18n::Tasks
       puts File.expand_path(File.join(File.dirname(__FILE__), '..', '..', '..'))
     end
 
-    cmd :merge, desc: 'merge forests passed as arguments', opts: [
-        options[:data_format],
-        {short: :s, long: :stdin, desc: 'Also merge from STDIN (merged last)'}
-    ]
+    cmd :merge, desc: 'merge forests passed as arguments', opts: options.slice(:data_format, :stdin).values
     def merge(opts = {})
-      forest = args_with_stdin(opts).inject(i18n.empty_forest) { |f, src| f.merge! parse_tree(src, opts) }
+      print_locale_tree read_forest_from_args(opts), opts
+    end
+
+    cmd :data_write, desc: 'write forests passed as arguments', opts: options.slice(:data_format, :stdin).values
+    def data_write(opts = {})
+      forest = read_forest_from_args(opts)
+      i18n.data.write forest
+      print_locale_tree forest, opts
+    end
+
+    cmd :data_merge, desc: 'write (merge) forests passed as arguments', opts: options.slice(:data_format, :stdin).values
+    def data_merge(opts = {})
+      forest = read_forest_from_args(opts)
+      i18n.data.merge! forest
       print_locale_tree forest, opts
     end
   end

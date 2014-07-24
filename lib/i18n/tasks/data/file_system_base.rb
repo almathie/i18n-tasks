@@ -45,6 +45,17 @@ module I18n::Tasks
         @available_locales = nil
       end
 
+      def write(forest)
+        forest.each { |root| set(root.key, root) }
+      end
+
+      def merge!(forest)
+        forest.each { |root|
+          locale = root.key
+          set(locale, get(locale).merge!(root))
+        }
+      end
+
       alias []= set
 
       # @return self

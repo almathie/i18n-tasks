@@ -30,11 +30,14 @@ module I18n::Tasks
       end
     end
 
+    def read_forest_from_args(opts)
+      opts[:format] ||= VALID_DATA_FORMATS.first
+      args_with_stdin(opts).inject(i18n.empty_forest) { |f, src| f.merge! parse_tree(src, opts) }
+    end
+
     def args_with_stdin(opt)
       sources = opt[:arguments] || []
-      if opt[:stdin]
-        sources << $stdin.read
-      end
+      sources.unshift $stdin.read if opt[:stdin]
       sources
     end
 
