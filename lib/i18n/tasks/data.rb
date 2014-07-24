@@ -25,8 +25,12 @@ module I18n::Tasks
       end
     end
 
+    def empty_forest
+      ::I18n::Tasks::Data::Tree::Siblings.new
+    end
+
     def data_forest(locales = self.locales)
-      locales.inject(Tree::Siblings.new) do |tree, locale|
+      locales.inject(empty_forest) do |tree, locale|
         tree.merge! data[locale]
       end
     end

@@ -188,7 +188,7 @@ module I18n::Tasks
         {short: :s, long: :stdin, desc: 'Also merge from STDIN (merged last)'}
     ]
     def merge(opts = {})
-      forest = args_with_stdin(opts).inject(::I18n::Tasks::Data::Tree::Siblings.new) { |f, src| f.merge! parse_tree(src, opts) }
+      forest = args_with_stdin(opts).inject(i18n.empty_forest) { |f, src| f.merge! parse_tree(src, opts) }
       print_locale_tree forest, opts
     end
   end
