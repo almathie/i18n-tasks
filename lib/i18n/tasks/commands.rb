@@ -18,8 +18,14 @@ module I18n::Tasks
         format: {
             short: :f,
             long:  :format=,
-            desc:  "Output format: #{VALID_TREE_FORMATS * ', '}. Default: terminal-table.",
-            conf:  {default: 'terminal-table', argument: true, optional: false}
+            desc:  "Output format: #{VALID_TREE_FORMATS * ', '}. Default: #{VALID_TREE_FORMATS.first}",
+            conf:  {default: VALID_TREE_FORMATS.first, argument: true, optional: false}
+        },
+        data_format: {
+            short: :f,
+            long: :format=,
+            desc: "Data format: #{VALID_DATA_FORMATS * ', '}. Default: #{VALID_DATA_FORMATS.first}",
+            conf:  {default: VALID_DATA_FORMATS.first, argument: true, optional: false}
         },
         strict: {
             short: :s,
@@ -175,6 +181,15 @@ module I18n::Tasks
 
     def gem_path
       puts File.expand_path(File.join(File.dirname(__FILE__), '..', '..', '..'))
+    end
+
+    cmd :merge, desc: 'merge forests passed as arguments', opts: [
+        options[:data_format],
+        {short: :s, long: :stdin, desc: 'Also merge from STDIN (merged last)'}
+    ]
+    def merge(opts = {})
+      forest = args_with_stdin(opts).inject(::I18n::Tasks::Data::Tree::Siblings.new) { |f, src| f.merge! parse_tree(src, opts) }
+      print_locale_tree forest, opts
     end
   end
 end

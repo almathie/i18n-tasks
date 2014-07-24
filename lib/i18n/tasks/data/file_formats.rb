@@ -27,6 +27,12 @@ module I18n
           adapter.dump(tree, adapter_options)
         end
 
+        def adapter_parse(tree, adapter_info)
+          adapter_name, adapter_pattern, adapter = adapter_info
+          adapter_options = (config[adapter_name] || {})[:read]
+          adapter.parse(tree, adapter_options)
+        end
+
         protected
 
         def load_file(path)

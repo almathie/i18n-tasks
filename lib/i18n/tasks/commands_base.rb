@@ -30,8 +30,16 @@ module I18n::Tasks
       end
     end
 
+    def args_with_stdin(opt)
+      sources = opt[:arguments] || []
+      if opt[:stdin]
+        sources << $stdin.read
+      end
+      sources
+    end
 
-    VALID_TREE_FORMATS = %w(terminal-table yaml json keys inspect)
+    VALID_DATA_FORMATS = %w(yaml json)
+    VALID_TREE_FORMATS = ['terminal-table', *VALID_DATA_FORMATS, 'keys', 'inspect']
 
     def print_locale_tree(tree, opt, version = :show_tree)
       format = opt[:format] || VALID_TREE_FORMATS.first
@@ -46,6 +54,10 @@ module I18n::Tasks
         when *i18n.data.adapter_names.map(&:to_s)
           puts i18n.data.adapter_dump tree, i18n.data.adapter_by_name(format)
       end
+    end
+
+    def parse_tree(src, opt = {})
+      i18n.data.adapter_parse src, i18n.data.adapter_by_name(opt[:format] || VALID_DATA_FORMATS.first)
     end
 
     def safe_run(name, opts)
