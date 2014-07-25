@@ -1,5 +1,6 @@
 # coding: utf-8
 require 'easy_translate'
+require 'i18n/tasks/html_keys'
 
 module I18n::Tasks
   module GoogleTranslation
@@ -12,24 +13,18 @@ module I18n::Tasks
     # @param [Array] list of [key, value] pairs
     def google_translate_list(list, opts)
       return [] if list.empty?
-      opts = opts.dup
-      if !opts[:key] && (key = translation_config[:api_key]).present?
-        opts[:key] = key
-      end
+      opts       = opts.dup
+      opts[:key] ||= translation_config[:api_key]
       if opts[:key].blank?
-        warn_missing_api_key
-        return []
+        raise CommandError.new('Set Google API key via GOOGLE_TRANSLATE_API_KEY environment variable or translation.api_key in config/i18n-tasks.yml.
+Get the key at https://code.google.com/apis/console.')
       end
-      key_idx = {}
-      list.each_with_index { |k_v, i| key_idx[k_v[0]] = i }
-      list.group_by { |k_v|
-        !!(k_v[0] =~ /[.\-_]html\z/.freeze)
-      }.map do |html, slice|
-        t_opts = opts.merge(html ? {html: true} : {format: 'text'})
-        fetch_google_translations slice, t_opts
-      end.reduce(:+).tap { |l|
-        l.sort! { |a, b| key_idx[a[0]] <=> key_idx[b[0]] }
-      }
+      key_pos = list.each_with_index.inject({}) { |idx, ((k, _v), i)| idx[k] = i; idx }
+      result  = list.group_by { |k_v| HtmlKeys.html_key? k_v[0] }.map { |is_html, list_slice|
+        fetch_google_translations list_slice, opts.merge(is_html ? {html: true} : {format: 'text'})
+      }.reduce(:+) || []
+      result.sort! { |a, b| key_pos[a[0]] <=> key_pos[b[0]] }
+      result
     end
 
     def fetch_google_translations(list, opts)
@@ -83,11 +78,6 @@ module I18n::Tasks
       return translated if untranslated !~ INTERPOLATION_KEY_RE
       each_value = untranslated.scan(INTERPOLATION_KEY_RE).to_enum
       translated.gsub(Regexp.new(UNTRANSLATABLE_STRING, Regexp::IGNORECASE)) { each_value.next }
-    end
-
-    def warn_missing_api_key
-      $stderr.puts Term::ANSIColor.red Term::ANSIColor.yellow 'Set Google API key via GOOGLE_TRANSLATE_API_KEY environmnet variable or translation.api_key in config/i18n-tasks.yml.
-Get the key at https://code.google.com/apis/console.'
     end
   end
 end

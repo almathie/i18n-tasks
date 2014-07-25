@@ -9,6 +9,7 @@ module I18n::Tasks
   module Data
     class FileSystemBase
       include ::I18n::Tasks::Data::FileFormats
+      include ::I18n::Tasks::Logging
 
       attr_reader :config, :base_locale, :locales
       attr_accessor :locales
@@ -21,7 +22,13 @@ module I18n::Tasks
       def initialize(config = {})
         self.config  = config.except(:base_locale, :locales)
         @base_locale = config[:base_locale]
-        @locales     = LocaleList.normalize_locale_list(config[:locales].presence || available_locales, base_locale, true)
+        locales = config[:locales].presence
+        @locales = LocaleList.normalize_locale_list(locales || available_locales, base_locale, true)
+        if locales.present?
+          log_verbose "data locales: #{@locales}"
+        else
+          log_verbose "data locales (inferred): #{@locales}"
+        end
       end
 
       # get locale tree
