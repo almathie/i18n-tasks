@@ -16,10 +16,10 @@ describe 'Google Translation' do
     describe 'real world test' do
       delegate :i18n_cmd, :i18n_task, :in_test_app_dir, to: :TestCodebase
 
-      context 'API' do
+      context '#google_translate_list' do
         it "works with #{tests.map(&:first)}" do
           # Just one test with all the cases to lower the Google bill
-          translations = google_translate(
+          translations = google_translate_list(
               tests.map { |t| t[0..1] }, from: :en, to: :es, key: ENV['GOOGLE_TRANSLATE_API_KEY'])
           expect(translations).to eq(tests.map { |t| [t[0], t[2]] })
         end

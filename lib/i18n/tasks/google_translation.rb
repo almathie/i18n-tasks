@@ -3,8 +3,14 @@ require 'easy_translate'
 
 module I18n::Tasks
   module GoogleTranslation
+    def google_translate_forest(forest, from, to)
+      list   = forest.key_values(root: true).map { |e| e.map(&:to_s) }
+      values = google_translate_list(list, to: to, from: from).map(&:last)
+      Data::Tree::Siblings.from_flat_pairs list.map(&:first).zip(values)
+    end
+
     # @param [Array] list of [key, value] pairs
-    def google_translate(list, opts)
+    def google_translate_list(list, opts)
       return [] if list.empty?
       opts = opts.dup
       if !opts[:key] && (key = translation_config[:api_key]).present?

@@ -98,7 +98,14 @@ module I18n::Tasks
     def translate_missing(opt = {})
       opt[:from] = base_locale if opt[:from].blank? || opt[:from] == 'base'
       parse_locales! opt
-      i18n.fill_missing_google_translate opt
+      from = opt[:from]
+      translated_forest = (opt[:locales] - [from]).inject i18n.empty_forest do |result, locale|
+        translated = i18n.google_translate_forest i18n.missing_tree(locale, from), from, locale
+        i18n.data.merge! translated
+        result.merge! translated
+      end
+      log_stderr 'Translated:'
+      print_locale_tree translated_forest, opt
     end
 
     cmd :add_missing, desc: 'add missing keys to the locales', opts: [

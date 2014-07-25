@@ -9,7 +9,6 @@ require 'i18n/tasks/ignore_keys'
 require 'i18n/tasks/missing_keys'
 require 'i18n/tasks/unused_keys'
 require 'i18n/tasks/google_translation'
-require 'i18n/tasks/fill_tasks'
 require 'i18n/tasks/locale_pathname'
 require 'i18n/tasks/locale_list'
 require 'i18n/tasks/string_interpolation'
@@ -26,7 +25,6 @@ module I18n
       include IgnoreKeys
       include MissingKeys
       include UnusedKeys
-      include FillTasks
       include GoogleTranslation
       include Logging
       include Configuration
