@@ -3,7 +3,7 @@ require 'spec_helper'
 describe 'Data commands' do
   delegate :run_cmd, to: :TestCodebase
   def en_data
-    {'en' => {'common' => {'hello' => 'Hello'}}}
+    {'en' => {'a' => '1', 'common' => {'hello' => 'Hello'}}}
   end
 
   def en_data_2
@@ -29,5 +29,10 @@ describe 'Data commands' do
 
   it '#data-write' do
     expect(JSON.parse(run_cmd :data_write, format: 'json', arguments: [en_data_2.to_json])).to eq(en_data_2)
+  end
+
+  it '#data-remove' do
+    to_remove = {'en' => {'common' => {'hello' => ''}}}
+    expect(JSON.parse(run_cmd :data_remove, format: 'json', arguments: [to_remove.to_json])).to eq('en' => {'common' => en_data['en']['common'] })
   end
 end

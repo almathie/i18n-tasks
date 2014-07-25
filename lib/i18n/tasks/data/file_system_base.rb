@@ -65,6 +65,15 @@ module I18n::Tasks
         }
       end
 
+      def remove_by_key!(forest)
+        forest.inject(Tree::Siblings.new) do |removed, root|
+          locale_data = get(root.key)
+          subtracted = locale_data.subtract_by_key(forest)
+          set root.key, subtracted
+          removed.merge! locale_data.subtract_by_key(subtracted)
+        end
+      end
+
       alias []= set
 
       # @return self

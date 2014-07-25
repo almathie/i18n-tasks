@@ -144,9 +144,16 @@ module I18n::Tasks::Data::Tree
     end
 
     def subtract_by_key(other)
-      select_nodes do |node|
-        !other.get(node.full_key(root: true))
+      exclude = {}
+      other.keys(root: true) do |full_key, other_node|
+        node = get full_key
+        exclude[node] = true if node
       end
+      select_nodes { |node|
+        not exclude[node] ||
+            node.walk_to_root.any? { |p| exclude[p] } ||
+            node.children.try(:all?) { |c| exclude[c] }
+      }
     end
 
     def set_root_key!(new_key, data = nil)

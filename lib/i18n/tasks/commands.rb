@@ -96,21 +96,24 @@ module I18n::Tasks
 
     cmd :remove_unused, desc: 'remove unused keys', opt: [
         opt_def[:locale].merge(desc: 'Locales to remove unused keys from (comma-separated, default: all)'),
+        opt_def[:format],
         opt_def[:strict]
     ]
 
     def remove_unused(opt = {})
       opt_locales! opt
+      opt_output_format! opt
       unused_keys = i18n.unused_keys(opt)
       if unused_keys.present?
         terminal_report.unused_keys(unused_keys)
         unless ENV['CONFIRM']
           exit 1 unless agree(red "#{unused_keys.leaves.count} translations will be removed in #{bold opt[:locales] * ', '}#{red '.'} " + yellow('Continue? (yes/no)') + ' ')
         end
-        i18n.remove_unused!(opt[:locales])
-        $stderr.puts "Removed #{unused_keys.leaves.count} keys"
+        removed = i18n.data.remove_by_key!(unused_keys)
+        log_stderr "Removed #{unused_keys.leaves.count} keys"
+        print_forest removed, opt
       else
-        $stderr.puts bold green 'No unused keys to remove'
+        log_stderr bold green 'No unused keys to remove'
       end
     end
 
@@ -168,6 +171,13 @@ module I18n::Tasks
       print_forest forest, opt
     end
 
+    cmd :data_remove, desc: 'remove keys present in [trees] from data', opt: opt_def.values_at(:data_format, :stdin)
+    def data_remove(opt = {})
+      opt_data_format! opt
+      removed = i18n.data.remove_by_key!(parse_forest_args(opt))
+      log_stderr 'Removed:'
+      print_forest removed, opt
+    end
 
     cmd :tree_merge, desc: 'Merge [trees]', opt: opt_def.values_at(:data_format, :stdin)
 
