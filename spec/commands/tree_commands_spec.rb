@@ -53,4 +53,15 @@ describe 'Tree commands' do
       expect(renamed).to eq(forest.tap { |f| f['a']['b']['x'] = f['a']['b'].delete('a') })
     end
   end
+
+  context 'tree-convert' do
+    def forest
+      {'x' => '1', 'a' => {'b' => {'a' => '2'}}}
+    end
+
+    it 'converts to keys' do
+      keys = run_cmd(:tree_convert, from: 'json', to: 'keys', arguments: [forest.to_json]).split("\n")
+      expect(keys.sort).to eq(['a.b.a', 'x'].sort)
+    end
+  end
 end

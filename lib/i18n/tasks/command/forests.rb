@@ -33,12 +33,12 @@ module I18n::Tasks
         end
       end
 
-      def parse_output_format!(opt = {})
-        opt[:format] ||= VALID_TREE_FORMATS.first
+      def parse_output_format!(opt = {}, key = :format)
+        opt[key] ||= VALID_TREE_FORMATS.first
       end
 
-      def parse_data_format!(opt = {})
-        opt[:format] ||= VALID_DATA_FORMATS.first
+      def parse_data_format!(opt = {}, key = :format)
+        opt[key] ||= VALID_DATA_FORMATS.first
       end
 
       module KlassMethods

@@ -191,12 +191,12 @@ module I18n::Tasks
       print_forest forest, opt
     end
 
-    cmd :tree_subtract_by_key, desc: '[tree A] sans keys in [tree B]', opt: opt_def.slice(:data_format, :stdin).values
+    cmd :tree_subtract_by_key, desc: '[Tree A] except the keys also in [tree B]', opt: opt_def.slice(:data_format, :stdin).values
 
     def tree_subtract_by_key(opt = {})
       parse_data_format! opt
-      forest = args_with_stdin(opt).map { |src| parse_tree(src, opt) }
-      forest = forest.reduce(:subtract_by_key)
+      trees = args_with_stdin(opt).map { |src| parse_tree(src, opt) }
+      forest = trees.reduce(:subtract_by_key) || empty_forest
       print_forest forest, opt
     end
 
@@ -225,6 +225,18 @@ module I18n::Tasks
       raise CommandError.new('pass value (-v, --value)') if value.blank?
       forest.set_each_value!(value, opt[:pattern])
       print_forest forest, opt
+    end
+
+    cmd :tree_convert, desc: 'Convert tree from one format to another', opt: [
+        opt_def[:data_format].merge(short: :f, long: :from=),
+        opt_def[:format].merge(short: :t, long: :to=),
+        opt_def[:stdin]
+    ]
+    def tree_convert(opt = {})
+      parse_data_format! opt, :from
+      parse_output_format! opt, :to
+      forest = read_forest_from_args opt.merge(format: opt[:from])
+      print_forest forest, opt.merge(format: opt[:to])
     end
 
     cmd :irb, desc: 'REPL session within i18n-tasks context'
