@@ -149,7 +149,7 @@ module I18n::Tasks::Data::Tree
       end
     end
 
-    def set_root_key(new_key, data = nil)
+    def set_root_key!(new_key, data = nil)
       return self if empty?
       rename_key first.key, new_key
       leaves { |node| node.data.merge! data } if data

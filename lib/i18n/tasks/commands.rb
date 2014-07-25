@@ -42,11 +42,17 @@ module I18n::Tasks
             long:  :pattern=,
             desc:  %(Filter by key pattern (e.g. 'common.*')),
             conf:  {argument: true, optional: false}
+        },
+        value:       {
+            short: :v,
+            long:  :value=,
+            desc:  'Value, interpolates %{value}, %{human_key}, and %{value_or_human_key}',
+            conf:  {argument: true, optional: false}
         }
     }
 
     cmd :missing, desc: 'show missing translations', opts: [
-        options[:locale],
+        *options.slice(:locale, :format).values,
         {short: :t, long: :types=, desc: 'Filter by type (types: used, diff)', conf: {as: Array, delimiter: /[+:,]/}}
     ]
 
@@ -97,26 +103,14 @@ module I18n::Tasks
 
     cmd :add_missing, desc: 'add missing keys to the locales', opts: [
         options[:locale].merge(desc: 'Locales to add keys into (comma-separated, default: all)'),
-        {short: :p, long: :placeholder=, desc: 'Value for empty keys (default: base value or key.humanize)',
-         conf:  {argument: true, optional: false}}
+        options[:value].merge(desc: options[:value][:desc] + '. Default: %{value_or_human_key}')
     ]
 
     def add_missing(opt = {})
       parse_locales! opt
-      opt[:value] ||= opt.delete(:placeholder) || proc { |key, locale|
-        # default to base value or key.humanize
-        locale != base_locale && t(key, base_locale) || SplitKey.split_key(key).last.to_s.humanize
-      }
-
-      v = opt[:value]
-      if v.is_a?(String) && v.include?('%{base_value}')
-        opt[:value] = proc { |key, locale, node|
-          base_value = node.value || t(key, base_locale) || ''
-          v % {base_value: base_value}
-        }
-      end
-
-      i18n.fill_missing_value opt
+      forest = i18n.missing_keys(opt).set_each_value!(opt[:value] || '%{value_or_human_key}')
+      i18n.data.merge! forest
+      print_locale_tree forest, opt
     end
 
     cmd :normalize, desc: 'normalize translation data: sort and move to the right files', opts: [
@@ -236,10 +230,7 @@ module I18n::Tasks
       print_locale_tree forest, opts
     end
 
-    cmd :set_value, desc: 'set all values matching key pattern', opts: [
-        {short: :v, long: :value=, desc: 'Value to set, interpolates original value as %{value}', conf: {argument: true, optional: false}},
-        *options.slice(:data_format, :stdin, :pattern).values
-    ]
+    cmd :set_value, desc: 'set all values matching key pattern', opts: options.slice(:value, :data_format, :stdin, :pattern).values
 
     def set_value(opts = {})
       forest = read_forest_from_args(opts)

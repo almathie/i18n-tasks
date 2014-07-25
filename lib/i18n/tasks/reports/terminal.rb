@@ -8,6 +8,7 @@ module I18n
         include Term::ANSIColor
 
         def missing_keys(forest = task.missing_keys)
+          forest = task.collapse_plural_nodes!(forest)
           print_title missing_title(forest)
 
           if forest.present?

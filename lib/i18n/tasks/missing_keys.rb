@@ -33,7 +33,7 @@ module I18n::Tasks
       if locales.include?(base)
         # present in locale but not base
         (self.locales - [base]).each { |locale|
-          tree.merge! missing_diff_tree(base, locale).set_root_key(base)
+          tree.merge! missing_diff_tree(base, locale)
         }
       end
       tree
@@ -47,26 +47,31 @@ module I18n::Tasks
       end
     end
 
-    def missing_tree(locale, compared_to, collapse_plural = true)
+    def missing_tree(locale, compared_to)
       if locale == compared_to
         missing_used_tree locale
       else
-        missing_diff_tree locale, compared_to, collapse_plural
+        missing_diff_tree locale, compared_to
       end
     end
 
     # keys present in compared_to, but not in locale
-    def missing_diff_tree(locale, compared_to = base_locale, collapse_plural = true)
+    def missing_diff_tree(locale, compared_to = base_locale)
       data[compared_to].select_keys { |key, _node|
-        locale_key_missing?(locale, key)
-      }.set_root_key(locale, type: :missing_diff).tap { |t| collapse_plural_nodes!(t) if collapse_plural }
+        locale_key_missing? locale, depluralize_key(key, locale)
+      }.set_root_key!(locale, type: :missing_diff).keys { |_key, node|
+        if node.data.key?(:path)
+          # change path and locale to base
+          node.data.update path: LocalePathname.replace_locale(node.data[:path], node.data[:locale], locale), locale: locale
+        end
+      }
     end
 
     # keys used in the code missing translations in locale
     def missing_used_tree(locale)
       used_tree(strict: true).select_keys { |key, _node|
         locale_key_missing?(locale, key)
-      }.set_root_key(locale, type: :missing_used)
+      }.set_root_key!(locale, type: :missing_used)
     end
 
     def equal_values_tree(locale, compare_to = base_locale)
@@ -74,7 +79,7 @@ module I18n::Tasks
       data[locale].select_keys(root: false) { |key, node|
         other_node = base[key]
         other_node && node.value == other_node.value && !ignore_key?(key, :eq_base, locale)
-      }.set_root_key(locale, type: :eq_base)
+      }.set_root_key!(locale, type: :eq_base)
     end
 
     def locale_key_missing?(locale, key)
