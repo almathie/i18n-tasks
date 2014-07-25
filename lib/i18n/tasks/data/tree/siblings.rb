@@ -34,14 +34,13 @@ module I18n::Tasks::Data::Tree
                    proc { |_node| new_key }
                  end
       nodes do |node|
-        full_key = node.full_key
+        full_key = node.full_key(root: true)
         next if full_key !~ pattern_re
-        key = node.key
         new_key = key_proc.call(node)
-        if node.parent
-          node.parent.children.rename_key(key, new_key)
+        if node.parent == parent
+          rename_key(node.key, new_key)
         else
-          rename_key(key, new_key)
+          node.parent.children.rename_key(node.key, new_key)
         end
       end
       self
@@ -143,17 +142,20 @@ module I18n::Tasks::Data::Tree
       derive.merge!(nodes)
     end
 
-    def subtract_by_key(other)
+    def subtract_keys(keys)
       exclude = {}
-      other.keys(root: true) do |full_key, other_node|
-        node = get full_key
-        exclude[node] = true if node
+      keys.each do |full_key|
+        if (node = get full_key)
+          exclude[node] = true
+        end
       end
       select_nodes { |node|
-        not exclude[node] ||
-            node.walk_to_root.any? { |p| exclude[p] } ||
-            node.children.try(:all?) { |c| exclude[c] }
+        not exclude[node] || node.children.try(:all?) { |c| exclude[c] }
       }
+    end
+
+    def subtract_by_key(other)
+      subtract_keys other.key_names(root: true)
     end
 
     def set_root_key!(new_key, data = nil)

@@ -18,20 +18,23 @@ describe 'Tree commands' do
     end
   end
 
-  context 'tree-select-by-key' do
+  context 'tree-filter' do
     forest  = {'a' => '1', 'b' => '2', 'c' => {'a' => '3'}}
     pattern = '{a,c.*}'
     it "-p #{pattern.inspect} #{forest.to_json}" do
-      selected = JSON.parse run_cmd(:tree_select_by_key, format: 'json', pattern: pattern, arguments: [forest.to_json])
+      selected = JSON.parse run_cmd(:tree_filter, format: 'json', pattern: pattern, arguments: [forest.to_json])
       expect(selected).to eq(forest.except('b'))
     end
   end
 
-  context 'tree-subtract-by-key' do
+  context 'tree-subtract' do
     trees = [{'a' => '1', 'b' => '2'}, {'a' => '-1', 'c' => '3'}]
     it trees.map(&:to_json).join(', ') do
-      subtracted = JSON.parse run_cmd(:tree_subtract_by_key, format: 'json', arguments: trees.map(&:to_json))
-      expect(subtracted).to eq('b' => '2')
+      subtracted_a = JSON.parse run_cmd(:tree_subtract_by_key, format: 'json', arguments: trees.map(&:to_json))
+      subtracted_b = JSON.parse run_cmd(:tree_subtract_keys, format: 'json', arguments: [trees[0].to_json] + trees[1].keys)
+      expected = {'b' => '2'}
+      expect(subtracted_a).to eq expected
+      expect(subtracted_b).to eq expected
     end
   end
 

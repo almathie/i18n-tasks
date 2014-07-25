@@ -2,7 +2,7 @@
 require 'i18n/tasks/commands_base'
 require 'i18n/tasks/command/shared_options'
 require 'i18n/tasks/command/locales'
-require 'i18n/tasks/command/forests'
+require 'i18n/tasks/command/tree_io'
 require 'i18n/tasks/reports/terminal'
 require 'i18n/tasks/reports/spreadsheet'
 
@@ -12,7 +12,7 @@ module I18n::Tasks
     require 'highline/import'
     include Command::SharedOptions
     include Command::Locales
-    include Command::Forests
+    include Command::TreeIO
 
     opt_def = option_schema
 
@@ -185,27 +185,18 @@ module I18n::Tasks
       print_forest parse_forest_args(opts), opts
     end
 
-    cmd :tree_select_by_key, desc: 'Filter [trees] by key pattern', opt: [
+    cmd :tree_filter, desc: 'Filter [tree] by key pattern', opt: [
         opt_def[:data_format],
         opt_def[:stdin],
         opt_def[:pattern]
     ]
-    def tree_select_by_key(opt = {})
+    def tree_filter(opt = {})
       opt_data_format! opt
-      forest = parse_forest_args(opt)
+      forest = parse_forest_arg!(opt)
       unless opt[:pattern].blank?
         pattern_re = i18n.compile_key_pattern(opt[:pattern])
         forest     = forest.select_keys { |full_key, _node| full_key =~ pattern_re }
       end
-      print_forest forest, opt
-    end
-
-    cmd :tree_subtract_by_key, desc: 'Output [Tree A] without the keys in [tree B]', opt: opt_def.values_at(:data_format, :stdin)
-
-    def tree_subtract_by_key(opt = {})
-      opt_data_format! opt
-      forests = args_with_stdin(opt).map { |src| parse_forest(src, opt) }
-      forest  = forests.reduce(:subtract_by_key) || empty_forest
       print_forest forest, opt
     end
 
@@ -216,13 +207,30 @@ module I18n::Tasks
 
     def tree_rename_key(opt = {})
       opt_data_format! opt
-      forest = parse_forest_args(opt)
+      forest = parse_forest_arg!(opt)
       key    = opt[:key]
       name   = opt[:name]
       raise CommandError.new('pass full key to rename (-k, --key)') if key.blank?
       raise CommandError.new('pass new name (-n, --name)') if name.blank?
       forest.rename_each_key!(key, name)
       print_forest forest, opt
+    end
+
+    cmd :tree_subtract_by_key, desc: 'Output [tree A] without the keys in [tree B]', opt: opt_def.values_at(:data_format, :stdin)
+
+    def tree_subtract_by_key(opt = {})
+      opt_data_format! opt
+      forests = args_with_stdin(opt).map { |src| parse_forest(src, opt) }
+      forest  = forests.reduce(:subtract_by_key) || empty_forest
+      print_forest forest, opt
+    end
+
+    cmd :tree_subtract_keys, desc: 'Output [tree] without the [keys]', opt: opt_def.values_at(:keys, :data_format, :stdin)
+    def tree_subtract_keys(opt = {})
+      opt_data_format! opt
+      opt_keys! opt
+      result = parse_forest_arg!(opt).subtract_keys(opt[:keys] || [])
+      print_forest result, opt
     end
 
     cmd :tree_set_value, desc: 'Set values of [tree] keys matching pattern', opt: opt_def.values_at(:value, :data_format, :stdin, :pattern)

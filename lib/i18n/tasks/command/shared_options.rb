@@ -17,7 +17,8 @@ module I18n::Tasks
               stdin:         {
                   short: :s,
                   long:  :stdin,
-                  desc:  'Read locale data from stdin before the arguments'
+                  desc:  'Read locale data from stdin before the arguments',
+                  conf: {default: false}
               },
               pattern:       {
                   short: :p,
@@ -40,7 +41,7 @@ module I18n::Tasks
         end
 
         def enum_option_attr(short, long, name, valid)
-          long = "#{long}=" if long.to_s.end_with?('=')
+          long = "#{long}=" unless long.to_s.end_with?('=')
           {short: short, long: long.to_sym, desc: "#{name}: #{valid * ', '}. Default: #{valid.first}",
            conf:  {default: valid.first, argument: true, optional: false}}
         end

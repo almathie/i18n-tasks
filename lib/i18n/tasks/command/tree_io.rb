@@ -1,8 +1,8 @@
 module I18n::Tasks
   module Command
-    module Forests
+    module TreeIO
       VALID_DATA_FORMATS = %w(yaml json)
-      VALID_OUT_FORMATS = ['terminal-table', *VALID_DATA_FORMATS, 'keys', 'inspect']
+      VALID_OUT_FORMATS  = ['terminal-table', *VALID_DATA_FORMATS, 'keys', 'inspect']
 
       def self.included(base)
         base.extend KlassMethods
@@ -31,6 +31,16 @@ module I18n::Tasks
         opt[key] ||= VALID_DATA_FORMATS.first
       end
 
+      def opt_keys!(opt = {})
+        opt[:keys] = Array(opt[:keys]) + Array(opt[:arguments])
+      end
+
+      def parse_forest_arg!(opt)
+        src = opt[:stdin] ? $stdin.read : opt[:arguments].try(:shift)
+        src or raise CommandError.new('pass forest')
+        parse_forest(src, opt)
+      end
+
       def parse_forest_args(opts, op = :merge!)
         args_with_stdin(opts).inject(i18n.empty_forest) do |forest, source|
           forest.send op, parse_forest(source, opts)
@@ -46,7 +56,13 @@ module I18n::Tasks
         def option_schema
           super.merge(
               format:      enum_option_attr(:f, :format, 'Output format', VALID_OUT_FORMATS),
-              data_format: enum_option_attr(:f, :format, 'Data format', VALID_DATA_FORMATS)
+              data_format: enum_option_attr(:f, :format, 'Data format', VALID_DATA_FORMATS),
+              keys:        {
+                  short: :k,
+                  long:  :keys=,
+                  desc:  'List of [keys]',
+                  conf:  {as: Array, delimiter: /[+:,]/, argument: true, optional: false}
+              }
           )
         end
       end
