@@ -26,6 +26,27 @@ module I18n::Tasks::Data::Tree
       self
     end
 
+    def rename_each_key!(full_key_pattern, new_key)
+      pattern_re = I18n::Tasks::KeyPatternMatching.compile_key_pattern(full_key_pattern)
+      key_proc = if new_key.include?('%{key}')
+                   proc { |node| new_key % {key: node.key} }
+                 else
+                   proc { |_node| new_key }
+                 end
+      nodes do |node|
+        full_key = node.full_key
+        next if full_key !~ pattern_re
+        key = node.key
+        new_key = key_proc.call(node)
+        if node.parent
+          node.parent.children.rename_key(key, new_key)
+        else
+          rename_key(key, new_key)
+        end
+      end
+      self
+    end
+
     def replace_node!(node, new_node)
       @list[@list.index(node)] = new_node
       key_to_node[new_node.key] = new_node
@@ -122,6 +143,12 @@ module I18n::Tasks::Data::Tree
       derive.merge!(nodes)
     end
 
+    def subtract_by_key(other)
+      select_nodes do |node|
+        !other.get(node.full_key(root: true))
+      end
+    end
+
     def set_root_key(new_key, data = nil)
       return self if empty?
       rename_key first.key, new_key
@@ -176,6 +203,7 @@ module I18n::Tasks::Data::Tree
       # this is the native i18n gem format
       def from_nested_hash(hash, opts = {})
         parse_parent_opt!(opts)
+        raise ::I18n::Tasks::CommandError.new("invalid tree #{hash.inspect}") unless hash.respond_to?(:map)
         opts[:nodes] = hash.map { |key, value| Node.from_key_value key, value }
         Siblings.new(opts)
       end

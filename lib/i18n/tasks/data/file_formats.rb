@@ -31,6 +31,8 @@ module I18n
           adapter_name, adapter_pattern, adapter = adapter_info
           adapter_options = (config[adapter_name] || {})[:read]
           adapter.parse(tree, adapter_options)
+        rescue Exception => e
+          raise CommandError.new("invalid #{adapter_name}: #{e.message}")
         end
 
         protected

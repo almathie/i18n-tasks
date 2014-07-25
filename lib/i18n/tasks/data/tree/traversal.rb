@@ -103,7 +103,6 @@ module I18n::Tasks::Data::Tree
       }
     end
 
-
     # @return Siblings
     def intersect_keys(other_tree, key_opts = {}, &block)
       if block
@@ -120,6 +119,22 @@ module I18n::Tasks::Data::Tree
       select_keys(opts) do |full_key, _node|
         match === full_key
       end
+    end
+
+    def set_each_value!(value, key_pattern = nil)
+      value_proc = if value.include?('%{value}')
+                     proc { |node| value % {value: node.value} }
+                   else
+                     proc { |_node| value }
+                   end
+      if key_pattern.present?
+        pattern_re = I18n::Tasks::KeyPatternMatching.compile_key_pattern(key_pattern)
+      end
+      keys.each do |key, node|
+        next if pattern_re && key !~ pattern_re
+        node.value = value_proc.call(node)
+      end
+      self
     end
   end
 end
