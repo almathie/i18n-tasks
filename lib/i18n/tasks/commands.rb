@@ -60,13 +60,12 @@ module I18n::Tasks
       opt_locales! opt
       opt_output_format! opt
       from = opt[:from]
-      translated_forest = (opt[:locales] - [from]).inject i18n.empty_forest do |result, locale|
-        translated = i18n.google_translate_forest i18n.missing_tree(locale, from), from, locale
-        i18n.data.merge! translated
-        result.merge! translated
+      translated = (opt[:locales] - [from]).inject i18n.empty_forest do |result, locale|
+        result.merge! i18n.google_translate_forest i18n.missing_tree(locale, from), from, locale
       end
+      i18n.data.merge! translated
       log_stderr 'Translated:'
-      print_forest translated_forest, opt
+      print_forest translated, opt
     end
 
     cmd :add_missing, desc: 'add missing keys to locale data', opt: [
