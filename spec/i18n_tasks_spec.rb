@@ -1,6 +1,5 @@
 # coding: utf-8
 require 'spec_helper'
-require 'i18n/tasks/commands'
 require 'fileutils'
 
 describe 'i18n-tasks' do

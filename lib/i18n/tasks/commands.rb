@@ -1,5 +1,8 @@
 # coding: utf-8
 require 'i18n/tasks/commands_base'
+require 'i18n/tasks/command/shared_options'
+require 'i18n/tasks/command/locales'
+require 'i18n/tasks/command/forests'
 require 'i18n/tasks/reports/terminal'
 require 'i18n/tasks/reports/spreadsheet'
 
@@ -7,97 +10,55 @@ module I18n::Tasks
   class Commands < CommandsBase
     include Term::ANSIColor
     require 'highline/import'
+    include Command::SharedOptions
+    include Command::Locales
+    include Command::Forests
 
-    options = COMMON_OPTIONS = {
-        locale:      {
-            short: :l,
-            long:  :locales=,
-            desc:  'Filter by locale(s), comma-separated list (en,fr) or all (default), or pass arguments without -l',
-            conf:  {as: Array, delimiter: /[+:,]/, default: 'all', argument: true, optional: false}
-        },
-        format:      {
-            short: :f,
-            long:  :format=,
-            desc:  "Output format: #{VALID_TREE_FORMATS * ', '}. Default: #{VALID_TREE_FORMATS.first}",
-            conf:  {default: VALID_TREE_FORMATS.first, argument: true, optional: false}
-        },
-        data_format: {
-            short: :f,
-            long:  :format=,
-            desc:  "Data format: #{VALID_DATA_FORMATS * ', '}. Default: #{VALID_DATA_FORMATS.first}",
-            conf:  {default: VALID_DATA_FORMATS.first, argument: true, optional: false}
-        },
-        strict:      {
-            short: :s,
-            long:  :strict,
-            desc:  %Q(Do not infer dynamic key usage such as `t("category.\#{category.name}")`)
-        },
-        stdin:       {
-            short: :s,
-            long:  :stdin,
-            desc:  'Read locale data from stdin before the arguments'
-        },
-        pattern:     {
-            short: :p,
-            long:  :pattern=,
-            desc:  %(Filter by key pattern (e.g. 'common.*')),
-            conf:  {argument: true, optional: false}
-        },
-        value:       {
-            short: :v,
-            long:  :value=,
-            desc:  'Value, interpolates %{value}, %{human_key}, and %{value_or_human_key}',
-            conf:  {argument: true, optional: false}
-        }
-    }
+    opt_def = common_option_definitions
 
-    cmd :missing, desc: 'show missing translations', opts: [
-        *options.slice(:locale, :format).values,
-        {short: :t, long: :types=, desc: 'Filter by type (types: used, diff)', conf: {as: Array, delimiter: /[+:,]/}}
-    ]
+    cmd :missing, desc: 'show missing translations', opt: opt_def.slice(:locale, :format, :missing_types).values
 
     def missing(opt = {})
-      parse_locales! opt
-      print_locale_tree i18n.missing_keys(opt), opt, :missing_keys
+      parse_locales!(opt)
+      parse_output_format!(opt)
+      print_forest i18n.missing_keys(opt), opt, :missing_keys
     end
 
-    cmd :unused, desc: 'show unused translations', opts: options.slice(:locale, :format, :strict).values
+    cmd :unused, desc: 'show unused translations', opt: opt_def.slice(:locale, :format, :strict).values
 
     def unused(opt = {})
       parse_locales! opt
-      print_locale_tree i18n.unused_keys(opt), opt, :unused_keys
+      parse_output_format! opt
+      print_forest i18n.unused_keys(opt), opt, :unused_keys
     end
 
-    cmd :eq_base, desc: 'show translations equal to base value', opts: [options[:format]]
+    cmd :eq_base, desc: 'show translations equal to base value', opt: [opt_def[:format]]
 
     def eq_base(opt = {})
       parse_locales! opt
-      print_locale_tree i18n.eq_base_keys(opt), opt, :eq_base_keys
+      parse_output_format! opt
+      print_forest i18n.eq_base_keys(opt), opt, :eq_base_keys
     end
 
-    cmd :find, desc: 'show where the keys are used in the code', opts: options.slice(:format, :pattern).values
+    cmd :find, desc: 'show where the keys are used in the code', opt: opt_def.slice(:format, :pattern).values
 
     def find(opt = {})
+      parse_output_format! opt
       opt[:filter] ||= opt.delete(:pattern) || opt[:arguments].try(:first)
-      print_locale_tree i18n.used_tree(key_filter: opt[:filter].presence, source_locations: true), opt, :used_keys
+      print_forest i18n.used_tree(key_filter: opt[:filter].presence, source_locations: true), opt, :used_keys
     end
 
-    cmd :data, desc: 'show locale data', opts: options.slice(:locale, :format).values
-
-    def data(opt = {})
-      parse_locales! opt
-      print_locale_tree i18n.data_forest(opt[:locales]), opt
-    end
-
-    cmd :translate_missing, desc: 'translate missing keys with Google Translate', opts: [
-        options[:locale].merge(desc: 'Locales to translate (comma-separated, default: all)'),
+    cmd :translate_missing, desc: 'translate missing keys with Google Translate', opt: [
+        opt_def[:locale].merge(desc: 'Locales to translate (comma-separated, default: all)'),
         {short: :f, long: :from=, desc: 'Locale to translate from (default: base)',
-         conf:  {default: 'base', argument: true, optional: false}}
+         conf:  {default: 'base', argument: true, optional: false}},
+        opt_def[:format].except(:short)
     ]
 
     def translate_missing(opt = {})
       opt[:from] = base_locale if opt[:from].blank? || opt[:from] == 'base'
       parse_locales! opt
+      parse_output_format! opt
       from = opt[:from]
       translated_forest = (opt[:locales] - [from]).inject i18n.empty_forest do |result, locale|
         translated = i18n.google_translate_forest i18n.missing_tree(locale, from), from, locale
@@ -105,23 +66,26 @@ module I18n::Tasks
         result.merge! translated
       end
       log_stderr 'Translated:'
-      print_locale_tree translated_forest, opt
+      print_forest translated_forest, opt
     end
 
-    cmd :add_missing, desc: 'add missing keys to the locales', opts: [
-        options[:locale].merge(desc: 'Locales to add keys into (comma-separated, default: all)'),
-        options[:value].merge(desc: options[:value][:desc] + '. Default: %{value_or_human_key}')
+    cmd :add_missing, desc: 'add missing keys to locale data', opt: [
+        opt_def[:locale].merge(desc: 'Locales to add keys into (comma-separated, default: all)'),
+        opt_def[:value].merge(desc: opt_def[:value][:desc] + '. Default: %{value_or_human_key}'),
+        opt_def[:format]
     ]
 
     def add_missing(opt = {})
       parse_locales! opt
+      parse_output_format! opt
       forest = i18n.missing_keys(opt).set_each_value!(opt[:value] || '%{value_or_human_key}')
       i18n.data.merge! forest
-      print_locale_tree forest, opt
+      log_stderr 'Added:'
+      print_forest forest, opt
     end
 
-    cmd :normalize, desc: 'normalize translation data: sort and move to the right files', opts: [
-        options[:locale].merge(desc: 'Locales to normalize (comma-separated, default: all)'),
+    cmd :normalize, desc: 'normalize translation data: sort and move to the right files', opt: [
+        opt_def[:locale].merge(desc: 'Locales to normalize (comma-separated, default: all)'),
         {short: :p, long: :pattern_router, desc: 'Use pattern router, regardless of config.',
          conf:  {argument: false, optional: true}}
     ]
@@ -131,9 +95,9 @@ module I18n::Tasks
       i18n.normalize_store! opt[:locales], opt[:pattern_router]
     end
 
-    cmd :remove_unused, desc: 'remove unused keys', opts: [
-        options[:locale].merge(desc: 'Locales to remove unused keys from (comma-separated, default: all)'),
-        options[:strict]
+    cmd :remove_unused, desc: 'remove unused keys', opt: [
+        opt_def[:locale].merge(desc: 'Locales to remove unused keys from (comma-separated, default: all)'),
+        opt_def[:strict]
     ]
 
     def remove_unused(opt = {})
@@ -162,8 +126,8 @@ module I18n::Tasks
       puts cfg
     end
 
-    cmd :xlsx_report, desc: 'save missing and unused translations to an Excel file', opts: [
-        options[:locale],
+    cmd :xlsx_report, desc: 'save missing and unused translations to an Excel file', opt: [
+        opt_def[:locale],
         {long: :path=, desc: 'Destination path', conf: {default: 'tmp/i18n-report.xlsx'}}
     ]
 
@@ -179,6 +143,90 @@ module I18n::Tasks
       spreadsheet_report.save_report opt[:path], opt.except(:path)
     end
 
+    cmd :data, desc: 'show locale data', opt: opt_def.slice(:locale, :format).values
+
+    def data(opt = {})
+      parse_locales! opt
+      parse_output_format! opt
+      print_forest i18n.data_forest(opt[:locales]), opt
+    end
+
+    cmd :data_merge, desc: 'merge locale data with [trees]', opt: opt_def.slice(:data_format, :stdin).values
+
+    def data_merge(opt = {})
+      parse_data_format! opt
+      forest = read_forest_from_args(opt)
+      merged = i18n.data.merge!(forest)
+      print_forest merged, opt
+    end
+
+    cmd :data_write, desc: 'replace locale data with [trees]', opt: opt_def.slice(:data_format, :stdin).values
+
+    def data_write(opt = {})
+      parse_data_format! opt
+      forest = read_forest_from_args(opt)
+      i18n.data.write forest
+      print_forest forest, opt
+    end
+
+
+    cmd :tree_merge, desc: 'Merge [trees]', opt: opt_def.slice(:data_format, :stdin).values
+
+    def tree_merge(opts = {})
+      print_forest read_forest_from_args(opts), opts
+    end
+
+    cmd :tree_select_by_key, desc: 'Filter [trees] by key pattern', opt: [
+        opt_def[:data_format],
+        opt_def[:stdin],
+        opt_def[:pattern]
+    ]
+    def tree_select_by_key(opt = {})
+      parse_data_format! opt
+      forest = read_forest_from_args(opt)
+      unless opt[:pattern].blank?
+        pattern_re = i18n.compile_key_pattern(opt[:pattern])
+        forest     = forest.select_keys { |full_key, _node| full_key =~ pattern_re }
+      end
+      print_forest forest, opt
+    end
+
+    cmd :tree_subtract_by_key, desc: '[tree A] sans keys in [tree B]', opt: opt_def.slice(:data_format, :stdin).values
+
+    def tree_subtract_by_key(opt = {})
+      parse_data_format! opt
+      forest = args_with_stdin(opt).map { |src| parse_tree(src, opt) }
+      forest = forest.reduce(:subtract_by_key)
+      print_forest forest, opt
+    end
+
+    cmd :tree_rename_key, desc: 'Rename [tree] keys by key pattern', opt: opt_def.slice(:data_format, :stdin).values + [
+        opt_def[:pattern].merge(short: :k, long: :key=, desc: 'Full key to rename (pattern). Required'),
+        opt_def[:pattern].merge(short: :n, long: :name=, desc: 'New name, interpolates original name as %{key}. Required')
+    ]
+
+    def tree_rename_key(opt = {})
+      parse_data_format! opt
+      forest = read_forest_from_args(opt)
+      key    = opt[:key]
+      name   = opt[:name]
+      raise CommandError.new('pass full key to rename (-k, --key)') if key.blank?
+      raise CommandError.new('pass new name (-n, --name)') if name.blank?
+      forest.rename_each_key!(key, name)
+      print_forest forest, opt
+    end
+
+    cmd :tree_set_value, desc: 'Set values of [tree] keys matching pattern', opt: opt_def.slice(:value, :data_format, :stdin, :pattern).values
+
+    def tree_set_value(opt = {})
+      parse_data_format! opt
+      forest = read_forest_from_args(opt)
+      value  = opt[:value]
+      raise CommandError.new('pass value (-v, --value)') if value.blank?
+      forest.set_each_value!(value, opt[:pattern])
+      print_forest forest, opt
+    end
+
     cmd :irb, desc: 'REPL session within i18n-tasks context'
 
     def irb
@@ -192,75 +240,5 @@ module I18n::Tasks
       puts File.expand_path(File.join(File.dirname(__FILE__), '..', '..', '..'))
     end
 
-    cmd :merge, desc: 'merge forests passed as arguments', opts: options.slice(:data_format, :stdin).values
-
-    def merge(opts = {})
-      print_locale_tree read_forest_from_args(opts), opts
-    end
-
-    cmd :select_by_key, desc: 'select subtree matching key pattern', opts: [
-        options[:data_format],
-        options[:stdin],
-        options[:pattern]
-    ]
-
-    def select_by_key(opts = {})
-      forest = read_forest_from_args(opts)
-      unless opts[:pattern].blank?
-        pattern_re = i18n.compile_key_pattern(opts[:pattern])
-        forest     = forest.select_keys { |full_key, _node| full_key =~ pattern_re }
-      end
-      print_locale_tree forest, opts
-    end
-
-    cmd :subtract_by_key, desc: 'subtract keys of forest passed as arguments', opts: options.slice(:data_format, :stdin).values
-
-    def subtract_by_key(opts = {})
-      forest = args_with_stdin(opts).map { |src| parse_tree(src, opts) }
-      forest = forest.reduce(:subtract_by_key)
-      print_locale_tree forest, opts
-    end
-
-    cmd :rename_key, desc: 'rename all keys matching pattern', opts: [
-        *options.slice(:data_format, :stdin).values,
-        options[:pattern].merge(short: :k, long: :key=, desc: 'Full key to rename (pattern). Required'),
-        options[:pattern].merge(short: :n, long: :name=, desc: 'New name, interpolates original name as %{key}. Required')
-    ]
-
-    def rename_key(opts = {})
-      forest = read_forest_from_args(opts)
-      key    = opts[:key]
-      name   = opts[:name]
-      raise CommandError.new('pass key (-k, --key)') if key.blank?
-      raise CommandError.new('pass name (-n, --name)') if name.blank?
-      forest.rename_each_key!(key, name)
-      print_locale_tree forest, opts
-    end
-
-    cmd :set_value, desc: 'set all values matching key pattern', opts: options.slice(:value, :data_format, :stdin, :pattern).values
-
-    def set_value(opts = {})
-      forest = read_forest_from_args(opts)
-      value  = opts[:value]
-      raise CommandError.new('pass value (-v, --value)') if value.blank?
-      forest.set_each_value!(value, opts[:pattern])
-      print_locale_tree forest, opts
-    end
-
-    cmd :data_write, desc: 'write locale data passed as arguments', opts: options.slice(:data_format, :stdin).values
-
-    def data_write(opts = {})
-      forest = read_forest_from_args(opts)
-      i18n.data.write forest
-      print_locale_tree forest, opts
-    end
-
-    cmd :data_merge, desc: 'merge locale data passed as arguments', opts: options.slice(:data_format, :stdin).values
-
-    def data_merge(opts = {})
-      forest = read_forest_from_args(opts)
-      i18n.data.merge! forest
-      print_locale_tree forest, opts
-    end
   end
 end

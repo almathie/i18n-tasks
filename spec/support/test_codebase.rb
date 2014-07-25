@@ -2,6 +2,7 @@
 require 'fileutils'
 require 'yaml'
 require_relative 'capture_std'
+require 'i18n/tasks/commands'
 
 module TestCodebase
   include CaptureStd

@@ -8,61 +8,10 @@ module I18n::Tasks
       @i18n = i18n
     end
 
-    def locales_opt(locales)
-      return i18n.locales if locales == ['all'] || locales == 'all'
-      if locales.present?
-        locales = Array(locales).map { |v| v.strip.split(/\s*[\+,:]\s*/).compact.presence if v.is_a?(String) }.flatten
-        locales = locales.map(&:presence).compact.map { |v| v == 'base' ? base_locale : v }
-        locales
-      else
-        i18n.locales
-      end
-    end
-
-    VALID_LOCALE_RE = /\A\w[\w\-_\.]*\z/i
-
-    def parse_locales!(opt)
-      opt[:locales] = locales_opt(opt[:arguments].presence || opt[:locales]).tap do |locales|
-        locales.each do |locale|
-          raise CommandError.new("Invalid locale: #{locale}") if VALID_LOCALE_RE !~ locale
-        end
-        log_verbose "locales for the command are #{locales.inspect}"
-      end
-    end
-
-    def read_forest_from_args(opts, op = :merge!)
-      args_with_stdin(opts).inject(i18n.empty_forest) { |f, src| f.send op, parse_tree(src, opts) }
-    end
-
     def args_with_stdin(opt)
-      opt[:format] ||= VALID_DATA_FORMATS.first
       sources = opt[:arguments] || []
       sources.unshift $stdin.read if opt[:stdin]
       sources
-    end
-
-    VALID_DATA_FORMATS = %w(yaml json)
-    VALID_TREE_FORMATS = ['terminal-table', *VALID_DATA_FORMATS, 'keys', 'inspect']
-
-    def print_locale_tree(tree, opt, version = :show_tree)
-      format = opt[:format] || VALID_TREE_FORMATS.first
-      raise CommandError.new("unknown format: #{format}. Valid formats are: #{VALID_TREE_FORMATS * ', '}.") unless VALID_TREE_FORMATS.include?(format)
-      case format
-        when 'terminal-table'
-          terminal_report.send(version, tree)
-        when 'inspect'
-          puts tree.inspect
-        when 'keys'
-          puts tree.key_names(root: true)
-        when *i18n.data.adapter_names.map(&:to_s)
-          puts i18n.data.adapter_dump tree, i18n.data.adapter_by_name(format)
-      end
-    end
-
-    def parse_tree(src, opt = {})
-      Data::Tree::Siblings.from_nested_hash(
-          i18n.data.adapter_parse src, i18n.data.adapter_by_name(opt[:format] || VALID_DATA_FORMATS.first)
-      )
     end
 
     def safe_run(name, opts)

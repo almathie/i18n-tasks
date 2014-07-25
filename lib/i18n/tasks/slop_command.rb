@@ -5,7 +5,7 @@ module I18n::Tasks::SlopCommand
     proc {
       command name.tr('_', '-') do
         desc = attr[:desc]
-        opts = attr[:opts]
+        opts = attr[:opt]
         description desc if desc
         if opts
           opts.each do |opt|

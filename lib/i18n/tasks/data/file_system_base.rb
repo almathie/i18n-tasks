@@ -50,9 +50,11 @@ module I18n::Tasks
       end
 
       def merge!(forest)
-        forest.each { |root|
+        forest.inject(Tree::Siblings.new) { |result, root|
           locale = root.key
-          set(locale, get(locale).merge!(root))
+          merged = get(locale).merge(root)
+          set locale, merged
+          result.merge! merged
         }
       end
 
