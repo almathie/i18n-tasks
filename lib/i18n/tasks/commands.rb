@@ -16,7 +16,7 @@ module I18n::Tasks
 
     opt_def = option_schema
 
-    cmd :missing, desc: 'show missing translations', opt: opt_def.slice(:locale, :format, :missing_types).values
+    cmd :missing, desc: 'show missing translations', opt: opt_def.values_at(:locale, :format, :missing_types)
 
     def missing(opt = {})
       opt_locales!(opt)
@@ -24,7 +24,7 @@ module I18n::Tasks
       print_forest i18n.missing_keys(opt), opt, :missing_keys
     end
 
-    cmd :unused, desc: 'show unused translations', opt: opt_def.slice(:locale, :format, :strict).values
+    cmd :unused, desc: 'show unused translations', opt: opt_def.values_at(:locale, :format, :strict)
 
     def unused(opt = {})
       opt_locales! opt
@@ -40,7 +40,7 @@ module I18n::Tasks
       print_forest i18n.eq_base_keys(opt), opt, :eq_base_keys
     end
 
-    cmd :find, desc: 'show where the keys are used in the code', opt: opt_def.slice(:format, :pattern).values
+    cmd :find, desc: 'show where the keys are used in the code', opt: opt_def.values_at(:format, :pattern)
 
     def find(opt = {})
       opt_output_format! opt
@@ -143,7 +143,7 @@ module I18n::Tasks
       spreadsheet_report.save_report opt[:path], opt.except(:path)
     end
 
-    cmd :data, desc: 'show locale data', opt: opt_def.slice(:locale, :format).values
+    cmd :data, desc: 'show locale data', opt: opt_def.values_at(:locale, :format)
 
     def data(opt = {})
       opt_locales! opt
@@ -151,7 +151,7 @@ module I18n::Tasks
       print_forest i18n.data_forest(opt[:locales]), opt
     end
 
-    cmd :data_merge, desc: 'merge locale data with [trees]', opt: opt_def.slice(:data_format, :stdin).values
+    cmd :data_merge, desc: 'merge locale data with [trees]', opt: opt_def.values_at(:data_format, :stdin)
 
     def data_merge(opt = {})
       opt_data_format! opt
@@ -160,7 +160,7 @@ module I18n::Tasks
       print_forest merged, opt
     end
 
-    cmd :data_write, desc: 'replace locale data with [trees]', opt: opt_def.slice(:data_format, :stdin).values
+    cmd :data_write, desc: 'replace locale data with [trees]', opt: opt_def.values_at(:data_format, :stdin)
 
     def data_write(opt = {})
       opt_data_format! opt
@@ -170,7 +170,7 @@ module I18n::Tasks
     end
 
 
-    cmd :tree_merge, desc: 'Merge [trees]', opt: opt_def.slice(:data_format, :stdin).values
+    cmd :tree_merge, desc: 'Merge [trees]', opt: opt_def.values_at(:data_format, :stdin)
 
     def tree_merge(opts = {})
       print_forest parse_forest_args(opts), opts
@@ -191,7 +191,7 @@ module I18n::Tasks
       print_forest forest, opt
     end
 
-    cmd :tree_subtract_by_key, desc: '[Tree A] except the keys also in [tree B]', opt: opt_def.slice(:data_format, :stdin).values
+    cmd :tree_subtract_by_key, desc: 'Output [Tree A] without the keys in [tree B]', opt: opt_def.values_at(:data_format, :stdin)
 
     def tree_subtract_by_key(opt = {})
       opt_data_format! opt
@@ -200,7 +200,7 @@ module I18n::Tasks
       print_forest forest, opt
     end
 
-    cmd :tree_rename_key, desc: 'Rename [tree] keys by key pattern', opt: opt_def.slice(:data_format, :stdin).values + [
+    cmd :tree_rename_key, desc: 'Rename [tree] keys by key pattern', opt: opt_def.values_at(:data_format, :stdin) + [
         opt_def[:pattern].merge(short: :k, long: :key=, desc: 'Full key to rename (pattern). Required'),
         opt_def[:pattern].merge(short: :n, long: :name=, desc: 'New name, interpolates original name as %{key}. Required')
     ]
@@ -216,7 +216,7 @@ module I18n::Tasks
       print_forest forest, opt
     end
 
-    cmd :tree_set_value, desc: 'Set values of [tree] keys matching pattern', opt: opt_def.slice(:value, :data_format, :stdin, :pattern).values
+    cmd :tree_set_value, desc: 'Set values of [tree] keys matching pattern', opt: opt_def.values_at(:value, :data_format, :stdin, :pattern)
 
     def tree_set_value(opt = {})
       opt_data_format! opt
