@@ -7,7 +7,7 @@ module I18n::Tasks
       end
 
       module KlassMethods
-        def common_option_definitions
+        def option_schema
           {
               strict:        {
                   short: :s,
@@ -37,6 +37,12 @@ module I18n::Tasks
                   conf:  {argument: true, optional: false}
               }
           }
+        end
+
+        def enum_option_attr(short, long, name, valid)
+          long = "#{long}=" if long.to_s.end_with?('=')
+          {short: short, long: long.to_sym, desc: "#{name}: #{valid * ', '}. Default: #{valid.first}",
+           conf:  {default: valid.first, argument: true, optional: false}}
         end
       end
     end

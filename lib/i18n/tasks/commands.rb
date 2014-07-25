@@ -14,36 +14,36 @@ module I18n::Tasks
     include Command::Locales
     include Command::Forests
 
-    opt_def = common_option_definitions
+    opt_def = option_schema
 
     cmd :missing, desc: 'show missing translations', opt: opt_def.slice(:locale, :format, :missing_types).values
 
     def missing(opt = {})
-      parse_locales!(opt)
-      parse_output_format!(opt)
+      opt_locales!(opt)
+      opt_output_format!(opt)
       print_forest i18n.missing_keys(opt), opt, :missing_keys
     end
 
     cmd :unused, desc: 'show unused translations', opt: opt_def.slice(:locale, :format, :strict).values
 
     def unused(opt = {})
-      parse_locales! opt
-      parse_output_format! opt
+      opt_locales! opt
+      opt_output_format! opt
       print_forest i18n.unused_keys(opt), opt, :unused_keys
     end
 
     cmd :eq_base, desc: 'show translations equal to base value', opt: [opt_def[:format]]
 
     def eq_base(opt = {})
-      parse_locales! opt
-      parse_output_format! opt
+      opt_locales! opt
+      opt_output_format! opt
       print_forest i18n.eq_base_keys(opt), opt, :eq_base_keys
     end
 
     cmd :find, desc: 'show where the keys are used in the code', opt: opt_def.slice(:format, :pattern).values
 
     def find(opt = {})
-      parse_output_format! opt
+      opt_output_format! opt
       opt[:filter] ||= opt.delete(:pattern) || opt[:arguments].try(:first)
       print_forest i18n.used_tree(key_filter: opt[:filter].presence, source_locations: true), opt, :used_keys
     end
@@ -57,8 +57,8 @@ module I18n::Tasks
 
     def translate_missing(opt = {})
       opt[:from] = base_locale if opt[:from].blank? || opt[:from] == 'base'
-      parse_locales! opt
-      parse_output_format! opt
+      opt_locales! opt
+      opt_output_format! opt
       from = opt[:from]
       translated_forest = (opt[:locales] - [from]).inject i18n.empty_forest do |result, locale|
         translated = i18n.google_translate_forest i18n.missing_tree(locale, from), from, locale
@@ -76,8 +76,8 @@ module I18n::Tasks
     ]
 
     def add_missing(opt = {})
-      parse_locales! opt
-      parse_output_format! opt
+      opt_locales! opt
+      opt_output_format! opt
       forest = i18n.missing_keys(opt).set_each_value!(opt[:value] || '%{value_or_human_key}')
       i18n.data.merge! forest
       log_stderr 'Added:'
@@ -91,7 +91,7 @@ module I18n::Tasks
     ]
 
     def normalize(opt = {})
-      parse_locales! opt
+      opt_locales! opt
       i18n.normalize_store! opt[:locales], opt[:pattern_router]
     end
 
@@ -101,7 +101,7 @@ module I18n::Tasks
     ]
 
     def remove_unused(opt = {})
-      parse_locales! opt
+      opt_locales! opt
       unused_keys = i18n.unused_keys(opt)
       if unused_keys.present?
         terminal_report.unused_keys(unused_keys)
@@ -139,23 +139,23 @@ module I18n::Tasks
         log_stderr Term::ANSIColor.red Term::ANSIColor.bold message
         exit 1
       end
-      parse_locales! opt
+      opt_locales! opt
       spreadsheet_report.save_report opt[:path], opt.except(:path)
     end
 
     cmd :data, desc: 'show locale data', opt: opt_def.slice(:locale, :format).values
 
     def data(opt = {})
-      parse_locales! opt
-      parse_output_format! opt
+      opt_locales! opt
+      opt_output_format! opt
       print_forest i18n.data_forest(opt[:locales]), opt
     end
 
     cmd :data_merge, desc: 'merge locale data with [trees]', opt: opt_def.slice(:data_format, :stdin).values
 
     def data_merge(opt = {})
-      parse_data_format! opt
-      forest = read_forest_from_args(opt)
+      opt_data_format! opt
+      forest = parse_forest_args(opt)
       merged = i18n.data.merge!(forest)
       print_forest merged, opt
     end
@@ -163,8 +163,8 @@ module I18n::Tasks
     cmd :data_write, desc: 'replace locale data with [trees]', opt: opt_def.slice(:data_format, :stdin).values
 
     def data_write(opt = {})
-      parse_data_format! opt
-      forest = read_forest_from_args(opt)
+      opt_data_format! opt
+      forest = parse_forest_args(opt)
       i18n.data.write forest
       print_forest forest, opt
     end
@@ -173,7 +173,7 @@ module I18n::Tasks
     cmd :tree_merge, desc: 'Merge [trees]', opt: opt_def.slice(:data_format, :stdin).values
 
     def tree_merge(opts = {})
-      print_forest read_forest_from_args(opts), opts
+      print_forest parse_forest_args(opts), opts
     end
 
     cmd :tree_select_by_key, desc: 'Filter [trees] by key pattern', opt: [
@@ -182,8 +182,8 @@ module I18n::Tasks
         opt_def[:pattern]
     ]
     def tree_select_by_key(opt = {})
-      parse_data_format! opt
-      forest = read_forest_from_args(opt)
+      opt_data_format! opt
+      forest = parse_forest_args(opt)
       unless opt[:pattern].blank?
         pattern_re = i18n.compile_key_pattern(opt[:pattern])
         forest     = forest.select_keys { |full_key, _node| full_key =~ pattern_re }
@@ -194,9 +194,9 @@ module I18n::Tasks
     cmd :tree_subtract_by_key, desc: '[Tree A] except the keys also in [tree B]', opt: opt_def.slice(:data_format, :stdin).values
 
     def tree_subtract_by_key(opt = {})
-      parse_data_format! opt
-      trees = args_with_stdin(opt).map { |src| parse_tree(src, opt) }
-      forest = trees.reduce(:subtract_by_key) || empty_forest
+      opt_data_format! opt
+      forests = args_with_stdin(opt).map { |src| parse_forest(src, opt) }
+      forest  = forests.reduce(:subtract_by_key) || empty_forest
       print_forest forest, opt
     end
 
@@ -206,8 +206,8 @@ module I18n::Tasks
     ]
 
     def tree_rename_key(opt = {})
-      parse_data_format! opt
-      forest = read_forest_from_args(opt)
+      opt_data_format! opt
+      forest = parse_forest_args(opt)
       key    = opt[:key]
       name   = opt[:name]
       raise CommandError.new('pass full key to rename (-k, --key)') if key.blank?
@@ -219,8 +219,8 @@ module I18n::Tasks
     cmd :tree_set_value, desc: 'Set values of [tree] keys matching pattern', opt: opt_def.slice(:value, :data_format, :stdin, :pattern).values
 
     def tree_set_value(opt = {})
-      parse_data_format! opt
-      forest = read_forest_from_args(opt)
+      opt_data_format! opt
+      forest = parse_forest_args(opt)
       value  = opt[:value]
       raise CommandError.new('pass value (-v, --value)') if value.blank?
       forest.set_each_value!(value, opt[:pattern])
@@ -233,9 +233,9 @@ module I18n::Tasks
         opt_def[:stdin]
     ]
     def tree_convert(opt = {})
-      parse_data_format! opt, :from
-      parse_output_format! opt, :to
-      forest = read_forest_from_args opt.merge(format: opt[:from])
+      opt_data_format! opt, :from
+      opt_output_format! opt, :to
+      forest = parse_forest_args opt.merge(format: opt[:from])
       print_forest forest, opt.merge(format: opt[:to])
     end
 

@@ -7,28 +7,26 @@ module I18n::Tasks
         base.extend KlassMethods
       end
 
-      def parse_locales!(opt)
-        opt[:locales] = locales_opt(opt[:arguments].presence || opt[:locales]).tap do |locales|
-          locales.each do |locale|
-            raise CommandError.new("Invalid locale: #{locale}") if VALID_LOCALE_RE !~ locale
-          end
-          log_verbose "locales for the command are #{locales.inspect}"
-        end
-      end
-
-      def locales_opt(locales)
-        return i18n.locales if locales == ['all'] || locales == 'all'
-        if locales.present?
-          locales = Array(locales).map { |v| v.strip.split(/\s*[\+,:]\s*/).compact.presence if v.is_a?(String) }.flatten
-          locales = locales.map(&:presence).compact.map { |v| v == 'base' ? base_locale : v }
-          locales
+      def opt_locales!(opt)
+        argv = Array(opt[:arguments]) + Array(opt[:locales])
+        if argv == ['all'] || argv == 'all' || argv.blank?
+          locales = i18n.locales
         else
-          i18n.locales
+          locales = argv.map { |v|
+            v.strip.split(/\s*[\+,:]\s*/).compact.presence if v.is_a?(String)
+          }.flatten.map(&:presence).compact.map { |v|
+            v == 'base' ? base_locale : v
+          }
         end
+        locales.each do |locale|
+          raise CommandError.new("Invalid locale: #{locale}") if VALID_LOCALE_RE !~ locale
+        end
+        log_verbose "locales for the command are #{locales.inspect}"
+        opt[:locales] = locales
       end
 
       module KlassMethods
-        def common_option_definitions
+        def option_schema
           super.merge(
               locale: {
                   short: :l,
