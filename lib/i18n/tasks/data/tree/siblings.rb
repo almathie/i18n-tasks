@@ -26,17 +26,11 @@ module I18n::Tasks::Data::Tree
       self
     end
 
-    def rename_each_key!(full_key_pattern, new_key)
+    def rename_each_key!(full_key_pattern, new_key_tpl)
       pattern_re = I18n::Tasks::KeyPatternMatching.compile_key_pattern(full_key_pattern)
-      key_proc = if new_key.include?('%{key}')
-                   proc { |node| new_key % {key: node.key} }
-                 else
-                   proc { |_node| new_key }
-                 end
       nodes do |node|
-        full_key = node.full_key(root: true)
-        next if full_key !~ pattern_re
-        new_key = key_proc.call(node)
+        next if node.full_key(root: true) !~ pattern_re
+        new_key = new_key_tpl.gsub('%{key}', node.key)
         if node.parent == parent
           rename_key(node.key, new_key)
         else
