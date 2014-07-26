@@ -15,10 +15,7 @@ module I18n::Tasks
       return [] if list.empty?
       opts       = opts.dup
       opts[:key] ||= translation_config[:api_key]
-      if opts[:key].blank?
-        raise CommandError.new('Set Google API key via GOOGLE_TRANSLATE_API_KEY environment variable or translation.api_key in config/i18n-tasks.yml.
-Get the key at https://code.google.com/apis/console.')
-      end
+      validate_google_translate_api_key! opts[:key]
       key_pos = list.each_with_index.inject({}) { |idx, ((k, _v), i)| idx[k] = i; idx }
       result  = list.group_by { |k_v| HtmlKeys.html_key? k_v[0] }.map { |is_html, list_slice|
         fetch_google_translations list_slice, opts.merge(is_html ? {html: true} : {format: 'text'})
@@ -36,6 +33,13 @@ Get the key at https://code.google.com/apis/console.')
     end
 
     private
+
+    def validate_google_translate_api_key!(key)
+      if key.blank?
+        raise CommandError.new('Set Google API key via GOOGLE_TRANSLATE_API_KEY environment variable or translation.api_key in config/i18n-tasks.yml.
+Get the key at https://code.google.com/apis/console.')
+      end
+    end
 
     def to_values(list)
       list.map { |l| dump_value l[1] }.flatten
