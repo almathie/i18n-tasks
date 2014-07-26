@@ -35,7 +35,7 @@ module I18n
         end
 
         def icon(type)
-          glyph = missing_types[type][:glyph]
+          glyph = missing_type_info(type)[:glyph]
           {missing_used: red(glyph), missing_diff: yellow(glyph)}[type]
         end
 

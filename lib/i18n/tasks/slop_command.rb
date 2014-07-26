@@ -7,7 +7,7 @@ module I18n::Tasks::SlopCommand
         opts = attr[:opt]
         args = attr[:args]
         banner "Usage: i18n-tasks #{name} [options] #{args}" if args.present?
-        desc = attr[:description]
+        desc = attr[:desc]
         description desc if desc
         if opts
           opts.each do |opt|

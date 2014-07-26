@@ -12,13 +12,8 @@ module I18n::Tasks::Reports
 
     protected
 
-    MISSING_TYPES = {
-        missing_used:   {glyph: '✗', summary: 'used in code but missing from base locale'},
-        missing_diff: {glyph: '∅', summary: 'translated in one locale but not in the other'}
-    }
-
-    def missing_types
-      MISSING_TYPES
+    def missing_type_info(type)
+      ::I18n::Tasks::MissingKeys::MISSING_TYPES[type.to_s.sub(/\Amissing_/, '').to_sym]
     end
 
     def missing_title(forest)

@@ -31,7 +31,7 @@ module I18n::Tasks::Reports
           style_header sheet
           tree.keys do |key, node|
             locale, type = node.root.data[:locale], node.data[:type]
-            sheet.add_row [missing_types[type][:summary], locale, key, task.t(key)],
+            sheet.add_row [missing_type_info(type)[:summary], locale, key, task.t(key)],
             styles: [type_cell, locale_cell, regular_style, regular_style]
           end
         }

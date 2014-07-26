@@ -1,17 +1,23 @@
 # coding: utf-8
 module I18n::Tasks
   module MissingKeys
+
+    MISSING_TYPES = {
+        used: {glyph: '✗', summary: 'used in code but missing from base locale'},
+        diff: {glyph: '∅', summary: 'translated in one locale but not in the other'}
+    }
+
     def missing_keys_types
-      @missing_keys_types ||= [:used, :diff]
+      @missing_keys_types ||= MISSING_TYPES.keys
     end
 
     # @param [:missing_used, :missing_diff] type (default nil)
     # @return [Siblings]
     def missing_keys(opts = {})
-      locales = Array(opts[:locales]).presence || self.locales
-      types   = (Array(opts[:types]).presence || missing_keys_types).map(&:to_s)
+      locales = opts[:locales].presence || self.locales
+      types   = opts[:types].presence || missing_keys_types
+      base    = opts[:base_locale] || base_locale
       validate_missing_types! types
-      base = opts[:base_locale] || base_locale
       types.inject(empty_forest) do |f, type|
         f.merge! send(:"missing_#{type}_forest", locales, base)
       end
@@ -89,11 +95,11 @@ module I18n::Tasks
     private
 
     def validate_missing_types!(types)
-      valid_types = missing_keys_types.map(&:to_s)
-      types = types.map(&:to_s)
+      valid_types   = missing_keys_types.map(&:to_s)
+      types         = types.map(&:to_s)
       invalid_types = types - valid_types
       if invalid_types.present?
-        raise CommandError.new("Unknown types: #{invalid_types * ', '}. Valid types are: #{valid_types * ', '}.")
+        raise CommandError.new("Unknown types: #{invalid_types * ', '}. Valid types: #{valid_types * ', '}.")
       end
       true
     end

@@ -56,8 +56,8 @@ module I18n::Tasks
         module KlassMethods
           def option_schema
             super.merge(
-                out_format:  enum_option_attr(:f, :format, 'Output format', VALID_OUT_FORMATS),
-                data_format: enum_option_attr(:f, :format, 'Data format', VALID_DATA_FORMATS),
+                out_format:  enum_option_attr(:f, :format=, 'Output format', VALID_OUT_FORMATS),
+                data_format: enum_option_attr(:f, :format=, 'Data format', VALID_DATA_FORMATS),
                 keys:        {
                     short: :k,
                     long:  :keys=,
