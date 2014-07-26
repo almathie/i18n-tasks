@@ -5,7 +5,7 @@ require 'i18n/tasks/html_keys'
 module I18n::Tasks
   module GoogleTranslation
     def google_translate_forest(forest, from, to)
-      list   = forest.key_values(root: true).map { |e| e.map(&:to_s) }
+      list   = forest.key_values(root: true)
       values = google_translate_list(list, to: to, from: from).map(&:last)
       Data::Tree::Siblings.from_flat_pairs list.map(&:first).zip(values)
     end

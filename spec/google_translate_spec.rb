@@ -43,7 +43,8 @@ describe 'Google Translation' do
                 'common' => {
                     'a' => 'λ',
                     'hello' => text_test[1],
-                    'hello_html' => html_test[1]
+                    'hello_html' => html_test[1],
+                    'array_key' => array_test[1]
                 }
             })
             task.data[:es] = build_tree('es' =>{
@@ -55,6 +56,7 @@ describe 'Google Translation' do
             cmd.translate_missing
             expect(task.t('common.hello', 'es')).to eq(text_test[2])
             expect(task.t('common.hello_html', 'es')).to eq(html_test[2])
+            expect(task.t('common.array_key', 'es')).to eq(array_test[2])
             expect(task.t('common.a', 'es')).to eq('λ')
           end
         end
