@@ -66,7 +66,7 @@ module I18n::Tasks
 
             def tree_subtract_keys(opt = {})
               opt_data_format! opt
-              opt_keys! opt
+              opt_args_keys! opt
               result = parse_forest_arg!(opt).subtract_keys(opt[:keys] || [])
               print_forest result, opt
             end

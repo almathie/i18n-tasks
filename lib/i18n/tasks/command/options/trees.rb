@@ -32,8 +32,8 @@ module I18n::Tasks
           opt[key] ||= VALID_DATA_FORMATS.first
         end
 
-        def opt_keys!(opt = {})
-          opt[:keys] = Array(opt[:keys]) + Array(opt[:arguments])
+        def opt_args_keys!(opt = {})
+          opt[:keys] = explode_list_opt(opt[:keys], /\s*,\s*/) + Array(opt[:arguments])
         end
 
         def parse_forest_arg!(opt)
