@@ -12,15 +12,17 @@ module I18n
         delegate :adapter_for_path, :adapter_by_name, :adapter_name, :adapter_names, to: :class
 
         def adapter_dump(tree, format)
-          adapter_by_name(format).dump tree, write_config(format)
-        rescue Exception => e
-          raise CommandError.new("error dumping #{format}: #{e.message}")
+          adapter_op :dump, format, tree, write_config(format)
         end
 
         def adapter_parse(tree, format)
-          adapter_by_name(format).parse tree, read_config(format)
+          adapter_op :parse, format, tree, read_config(format)
+        end
+
+        def adapter_op(op, format, tree, config)
+          adapter_by_name(format).send(op, tree, config)
         rescue Exception => e
-          raise CommandError.new("error parsing #{format}: #{e.message}")
+          raise CommandError.new("error #{op}ing #{format}: #{e.message}")
         end
 
         protected
