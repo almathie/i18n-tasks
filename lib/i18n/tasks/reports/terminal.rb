@@ -15,18 +15,7 @@ module I18n
             keys_attr = sort_by_attr! forest_to_attr(forest), {locale: :asc, type: :desc, key: :asc}
             print_table headings: [cyan(bold('Locale')), cyan(bold 'Key'), 'Details'] do |t|
               t.rows = keys_attr.map do |a|
-                locale, key = a[:locale], a[:key], a[:type]
-                if a[:type] == :missing_used
-                  occ = a[:data][:source_locations]
-                  first = occ.first
-                  info = [green("#{first[:src_path]}:#{first[:line_num]}"),
-                          ("(#{occ.length - 1} more)" if occ.length > 1)].compact.join(' ')
-                else
-                  info = a[:value].to_s.strip
-                end
-                [{value: cyan(locale), alignment: :center},
-                 cyan(key),
-                 wrap_string(info, 60)]
+                [{value: cyan(a[:locale]), alignment: :center}, cyan(a[:key]), wrap_string(key_info(a), 60)]
               end
             end
           else
@@ -119,6 +108,21 @@ module I18n
 
         def print_table(opts, &block)
           puts ::Terminal::Table.new(opts, &block)
+        end
+
+        def key_info(leaf)
+          if leaf[:type] == :missing_used
+            first_occurrence leaf
+          else
+            leaf[:value].to_s.strip
+          end
+        end
+
+        def first_occurrence(leaf)
+          usages = leaf[:data][:source_locations]
+          first = usages.first
+          [green("#{first[:src_path]}:#{first[:line_num]}"),
+           ("(#{usages.length - 1} more)" if usages.length > 1)].compact.join(' ')
         end
 
         def wrap_string(s, max)
