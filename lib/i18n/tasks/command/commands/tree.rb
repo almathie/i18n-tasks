@@ -72,15 +72,15 @@ module I18n::Tasks
             end
 
             cmd :tree_set_value,
-                args: '<tree> <pattern> <value>',
-                desc: 'set values of keys that match a pattern',
+                args: '<tree> <value>',
+                desc: 'set values of keys, optionally match a pattern',
                 opt:  cmd_opts(:value, :data_format, :stdin, :pattern)
 
             def tree_set_value(opt = {})
               opt_data_format! opt
               forest  = parse_forest_arg!(opt)
-              pattern = opt[:pattern] || opt[:arguments].try(:shift)
               value   = opt[:value] || opt[:arguments].try(:shift)
+              pattern = opt[:pattern]
               raise CommandError.new('pass value (-v, --value)') if value.blank?
               forest.set_each_value!(value, pattern)
               print_forest forest, opt

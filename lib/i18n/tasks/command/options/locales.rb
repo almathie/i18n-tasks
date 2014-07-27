@@ -27,22 +27,22 @@ module I18n::Tasks
 
         VALID_LOCALE_RE = /\A\w[\w\-_\.]*\z/i
         def validate_locale!(locale)
-          raise CommandError.new("Invalid locale: #{locale}") if VALID_LOCALE_RE !~ locale
+          raise CommandError.new(I18n.t('i18n_tasks.cmd.errors.invalid_locale', invalid: locale)) if VALID_LOCALE_RE !~ locale
         end
 
         module KlassMethods
-          def option_schema
+          def cmd_opts_schema
             super.merge(
                 locales: {
                     short: :l,
                     long:  :locales=,
-                    desc:  'Filter by locale(s), comma-separated list (en,fr) or all (default), or pass arguments without -l',
-                    conf:  {as: Array, delimiter: /[+:,]/, default: 'all', argument: true, optional: false}
+                    desc:  I18n.t('i18n_tasks.cmd.args.desc.locales_filter'),
+                    conf:  {as: Array, delimiter: /\s*[+:,]\s*/, default: 'all', argument: true, optional: false}
                 },
                 locale:  {
                     short: :l,
                     long:  :locale=,
-                    desc:  'Locale. Default: base',
+                    desc:  I18n.t('i18n_tasks.cmd.args.desc.locale'),
                     conf:  {default: 'base', argument: true, optional: false}
                 }
             )

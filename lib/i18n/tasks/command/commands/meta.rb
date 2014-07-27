@@ -21,7 +21,7 @@ module I18n::Tasks
             cmd :gem_path, desc: 'show path to the gem'
 
             def gem_path
-              puts File.expand_path(File.join(File.dirname(__FILE__), '..', '..', '..'))
+              puts I18n::Tasks.gem_path
             end
 
             cmd :irb, desc: 'start REPL session within i18n-tasks context'

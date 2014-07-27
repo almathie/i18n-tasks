@@ -2,16 +2,17 @@ module I18n::Tasks
   module Command
     module Options
       module Trees
-        VALID_DATA_FORMATS = %w(yaml json)
-        VALID_OUT_FORMATS  = ['terminal-table', *VALID_DATA_FORMATS, 'keys', 'inspect']
-
         def self.included(base)
           base.extend KlassMethods
+          base.class_eval do
+            enum_opt :data_format, %w(yaml json keys)
+            enum_opt :out_format, ['terminal-table', *enum_opt(:data_format), 'inspect']
+          end
         end
 
         def print_forest(forest, opt, version = :show_tree)
           format = opt[:format].to_s
-          raise CommandError.new("unknown format: #{format}. Valid formats are: #{VALID_OUT_FORMATS * ', '}.") unless VALID_OUT_FORMATS.include?(format)
+
           case format
             when 'terminal-table'
               terminal_report.send(version, forest)
@@ -19,21 +20,25 @@ module I18n::Tasks
               puts forest.inspect
             when 'keys'
               puts forest.key_names(root: true)
-            when *VALID_DATA_FORMATS
+            when *enum_opt(:data_format)
               puts i18n.data.adapter_dump forest, format
           end
         end
 
+        INVALID_FORMAT_MSG = proc do |value, valid|
+          I18n.t('i18n_tasks.cmd.errors.invalid_format', invalid: value, valid: valid * ', ')
+        end
+
         def opt_output_format!(opt = {}, key = :format)
-          opt[key] ||= VALID_OUT_FORMATS.first
+          opt[key] = parse_enum_opt opt[key], :out_format, &INVALID_FORMAT_MSG
         end
 
         def opt_data_format!(opt = {}, key = :format)
-          opt[key] ||= VALID_DATA_FORMATS.first
+          opt[key] = parse_enum_opt opt[key], :data_format, &INVALID_FORMAT_MSG
         end
 
         def opt_args_keys!(opt = {})
-          opt[:keys] = explode_list_opt(opt[:keys], /\s*,\s*/) + Array(opt[:arguments])
+          opt[:keys] = explode_list_opt(opt[:keys]) + Array(opt[:arguments])
         end
 
         def parse_forest_arg!(opt)
@@ -49,19 +54,31 @@ module I18n::Tasks
         end
 
         def parse_forest(src, opt = {})
-          hash = i18n.data.adapter_parse src, opt[:format] || VALID_DATA_FORMATS.first
-          Data::Tree::Siblings.from_nested_hash hash
+          format = opt_data_format!(opt)
+          if format == 'keys'
+            Data::Tree::Siblings.from_key_names parse_keys(src)
+          else
+            Data::Tree::Siblings.from_nested_hash i18n.data.adapter_parse(src, format)
+          end
+        end
+
+        def parse_keys(src)
+          explode_list_opt(src, /\s*[,\s\n]\s*/)
         end
 
         module KlassMethods
-          def option_schema
+          def cmd_opts_schema
             super.merge(
-                out_format:  enum_option_attr(:f, :format=, 'Output format', VALID_OUT_FORMATS),
-                data_format: enum_option_attr(:f, :format=, 'Data format', VALID_DATA_FORMATS),
+                out_format:  enum_opt_attr(:f, :format=, enum_opt(:out_format)) { |valid_text, default_text|
+                  I18n.t('i18n_tasks.cmd.args.desc.out_format', valid_text: valid_text, default_text: default_text)
+                },
+                data_format: enum_opt_attr(:f, :format=, enum_opt(:data_format)) { |valid_text, default_text|
+                  I18n.t('i18n_tasks.cmd.args.desc.data_format', valid_text: valid_text, default_text: default_text)
+                },
                 keys:        {
                     short: :k,
                     long:  :keys=,
-                    desc:  'List of [keys] (comma-separated)',
+                    desc:  I18n.t('i18n_tasks.cmd.args.desc.keys'),
                     conf:  {as: Array, delimiter: /[+:,]/, argument: true, optional: false}
                 }
             )

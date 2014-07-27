@@ -9,34 +9,41 @@ module I18n::Tasks
         end
 
         module KlassMethods
-          def option_schema
+          def cmd_opts_schema
             super.merge(
                 strict:        {
                     short: :s,
                     long:  :strict,
-                    desc:  %Q(Do not infer dynamic key usage such as `t("category.\#{category.name}")`)
+                    desc:  I18n.t('i18n_tasks.cmd.args.desc.strict')
                 },
                 stdin:         {
                     short: :s,
                     long:  :stdin,
-                    desc:  'Read locale data from stdin before the arguments',
+                    desc:  I18n.t('i18n_tasks.cmd.args.desc.stdin'),
+                    conf:  {default: false}
+                },
+                confirm: {
+                    short: :y,
+                    long:  :confirm,
+                    desc:  I18n.t('i18n_tasks.cmd.args.desc.confirm'),
                     conf:  {default: false}
                 },
                 pattern:       {
                     short: :p,
                     long:  :pattern=,
-                    desc:  %(Filter by key pattern (e.g. 'common.*')),
+                    desc:  I18n.t('i18n_tasks.cmd.args.desc.key_pattern'),
                     conf:  {argument: true, optional: false}
                 },
                 missing_types: {
                     short: :t,
                     long:  :types=,
-                    desc:  'Filter by type (types: used, diff)', conf: {as: Array, delimiter: /\s*[+:,]\s*/}
+                    desc:  I18n.t('i18n_tasks.cmd.args.desc.missing_types', valid: I18n::Tasks::MissingKeys.missing_keys_types * ', '),
+                    conf: {as: Array, delimiter: /\s*[+:,]\s*/}
                 },
                 value:         {
                     short: :v,
                     long:  :value=,
-                    desc:  'Value, interpolates %{value}, %{human_key}, and %{value_or_human_key}',
+                    desc:  I18n.t('i18n_tasks.cmd.args.desc.value'),
                     conf:  {argument: true, optional: false}
                 }
             )

@@ -3,6 +3,7 @@ require 'i18n/tasks/command/commander'
 require 'i18n/tasks/command/options/shared'
 require 'i18n/tasks/command/options/locales'
 require 'i18n/tasks/command/options/trees'
+require 'i18n/tasks/command/commands/health'
 require 'i18n/tasks/command/commands/missing'
 require 'i18n/tasks/command/commands/usages'
 require 'i18n/tasks/command/commands/eq_base'
@@ -16,10 +17,12 @@ module I18n::Tasks
   class Commands < Command::Commander
     include Term::ANSIColor
     require 'highline/import'
+
     include Command::Options::Shared
     include Command::Options::Locales
     include Command::Options::Trees
 
+    include Command::Commands::Health
     include Command::Commands::Missing
     include Command::Commands::Usages
     include Command::Commands::EqBase

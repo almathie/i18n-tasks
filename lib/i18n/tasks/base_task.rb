@@ -15,6 +15,7 @@ require 'i18n/tasks/locale_list'
 require 'i18n/tasks/string_interpolation'
 require 'i18n/tasks/data'
 require 'i18n/tasks/configuration'
+require 'i18n/tasks/stats'
 
 module I18n
   module Tasks
@@ -31,6 +32,7 @@ module I18n
       include Logging
       include Configuration
       include Data
+      include Stats
 
       def initialize(config = {})
         self.config = config || {}

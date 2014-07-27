@@ -27,7 +27,7 @@ module I18n::Tasks
     def fetch_google_translations(list, opts)
       from_values(list, EasyTranslate.translate(to_values(list), opts)).tap do |result|
         if result.blank?
-          raise CommandError.new('Google Translate returned no results. Make sure billing information is set at https://code.google.com/apis/console.')
+          raise CommandError.new(I18n.t('i18n_tasks.google_translate.errors.no_results'))
         end
       end
     end

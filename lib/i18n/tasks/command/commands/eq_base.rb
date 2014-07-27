@@ -6,8 +6,8 @@ module I18n::Tasks
           base.class_eval do
             cmd :eq_base,
                 args: '[locale ...]',
-                desc: 'show translations equal to base value',
-                opt:  [cmd_opt(:out_format)]
+                desc: I18n.t('i18n_tasks.cmd.desc.eq_base'),
+                opt:  cmd_opts(:locales, :out_format)
 
             def eq_base(opt = {})
               opt_locales! opt

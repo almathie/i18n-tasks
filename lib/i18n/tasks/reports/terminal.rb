@@ -9,17 +9,15 @@ module I18n
 
         def missing_keys(forest = task.missing_keys)
           forest = task.collapse_plural_nodes!(forest)
-          print_title missing_title(forest)
-
           if forest.present?
-            keys_attr = sort_by_attr! forest_to_attr(forest), {locale: :asc, type: :desc, key: :asc}
+            print_title missing_title(forest)
             print_table headings: [cyan(bold('Locale')), cyan(bold 'Key'), 'Details'] do |t|
-              t.rows = keys_attr.map do |a|
+              t.rows = sort_by_attr!(forest_to_attr(forest)).map do |a|
                 [{value: cyan(a[:locale]), alignment: :center}, cyan(a[:key]), wrap_string(key_info(a), 60)]
               end
             end
           else
-            print_success 'No translations missing!'
+            print_success I18n.t('i18n_tasks.missing.none')
           end
         end
 
@@ -51,18 +49,18 @@ module I18n
 
         def unused_keys(tree = task.unused_keys)
           keys = tree.root_key_values(true)
-          print_title unused_title(keys)
           if keys.present?
+            print_title unused_title(keys)
             print_locale_key_value_table keys
           else
-            print_success 'Every translation is used!'
+            print_success I18n.t('i18n_tasks.unused.none')
           end
         end
 
         def eq_base_keys(tree = task.eq_base_keys)
           keys = tree.root_key_values(true)
-          print_title eq_base_title(keys)
           if keys.present?
+            print_title eq_base_title(keys)
             print_locale_key_value_table keys
           else
             print_info cyan('No translations are the same as base value')
@@ -71,6 +69,16 @@ module I18n
 
         def show_tree(tree)
           print_locale_key_value_table tree.root_key_values(true)
+        end
+
+        def forest_stats(forest, stats = task.forest_stats(forest))
+          text = if stats[:locale_count] == 1
+                   I18n.t('i18n_tasks.data_stats.text_single_locale', stats)
+                 else
+                   I18n.t('i18n_tasks.data_stats.text', stats)
+                 end
+          title = bold(I18n.t('i18n_tasks.data_stats.title', stats.slice(:locales)))
+          print_info "#{cyan title} #{cyan text}"
         end
 
         private
@@ -90,7 +98,7 @@ module I18n
         end
 
         def print_success(message)
-          log_stderr(bold green ['Good job!', 'Well done!'].sample + ' ' + message)
+          log_stderr bold(green "✓ #{I18n.t('i18n_tasks.cmd.encourage').sample} #{message}")
         end
 
         def print_error(message)
@@ -120,14 +128,14 @@ module I18n
 
         def first_occurrence(leaf)
           usages = leaf[:data][:source_locations]
-          first = usages.first
+          first  = usages.first
           [green("#{first[:src_path]}:#{first[:line_num]}"),
            ("(#{usages.length - 1} more)" if usages.length > 1)].compact.join(' ')
         end
 
         def wrap_string(s, max)
           chars = []
-          dist = 0
+          dist  = 0
           s.chars.each do |c|
             chars << c
             dist += 1

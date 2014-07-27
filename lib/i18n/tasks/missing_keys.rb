@@ -7,17 +7,20 @@ module I18n::Tasks
         diff: {glyph: '∅', summary: 'translated in one locale but not in the other'}
     }
 
-    def missing_keys_types
+    def self.missing_keys_types
       @missing_keys_types ||= MISSING_TYPES.keys
     end
 
-    # @param [:missing_used, :missing_diff] type (default nil)
+    def missing_keys_types
+      MissingKeys.missing_keys_types
+    end
+
+    # @param [:missing_used, :missing_diff] types (default nil)
     # @return [Siblings]
     def missing_keys(opts = {})
       locales = opts[:locales].presence || self.locales
       types   = opts[:types].presence || missing_keys_types
       base    = opts[:base_locale] || base_locale
-      validate_missing_types! types
       types.inject(empty_forest) do |f, type|
         f.merge! send(:"missing_#{type}_forest", locales, base)
       end
@@ -90,18 +93,6 @@ module I18n::Tasks
 
     def locale_key_missing?(locale, key)
       !key_value?(key, locale) && !ignore_key?(key, :missing)
-    end
-
-    private
-
-    def validate_missing_types!(types)
-      valid_types   = missing_keys_types.map(&:to_s)
-      types         = types.map(&:to_s)
-      invalid_types = types - valid_types
-      if invalid_types.present?
-        raise CommandError.new("Unknown types: #{invalid_types * ', '}. Valid types: #{valid_types * ', '}.")
-      end
-      true
     end
   end
 end

@@ -6,7 +6,7 @@ module I18n::Tasks
           base.class_eval do
             cmd :find,
                 args: '[pattern]',
-                desc: 'show where the keys are used in the code',
+                desc: I18n.t('i18n_tasks.cmd.desc.find'),
                 opt:  cmd_opts(:out_format, :pattern)
 
             def find(opt = {})
@@ -17,7 +17,7 @@ module I18n::Tasks
 
             cmd :unused,
                 args: '[locale ...]',
-                desc: 'show unused translations',
+                desc: I18n.t('i18n_tasks.cmd.desc.unused'),
                 opt:  cmd_opts(:locales, :out_format, :strict)
 
             def unused(opt = {})
@@ -28,9 +28,8 @@ module I18n::Tasks
 
             cmd :remove_unused,
                 args: '[locale ...]',
-                desc: 'remove unused keys',
-                opt:  [cmd_opt(:locales).merge(desc: 'Locales to remove unused keys from (comma-separated, default: all)'),
-                       *cmd_opts(:out_format, :strict)]
+                desc: I18n.t('i18n_tasks.cmd.desc.remove_unused'),
+                opt: cmd_opts(:locales, :out_format, :strict, :confirm)
 
             def remove_unused(opt = {})
               opt_locales! opt
@@ -38,15 +37,26 @@ module I18n::Tasks
               unused_keys = i18n.unused_keys(opt)
               if unused_keys.present?
                 terminal_report.unused_keys(unused_keys)
-                unless ENV['CONFIRM']
-                  exit 1 unless agree(red "#{unused_keys.leaves.count} translations will be removed in #{bold opt[:locales] * ', '}#{red '.'} " + yellow('Continue? (yes/no)') + ' ')
-                end
+                confirm_remove_unused!(unused_keys, opt)
                 removed = i18n.data.remove_by_key!(unused_keys)
-                log_stderr "Removed #{unused_keys.leaves.count} keys"
+                log_stderr I18n.t('i18n_tasks.remove_unused.removed', count: unused_keys.leaves.count)
                 print_forest removed, opt
               else
-                log_stderr bold green 'No unused keys to remove'
+                log_stderr bold green I18n.t('i18n_tasks.remove_unused.noop')
               end
+            end
+
+            private
+
+            def confirm_remove_unused!(unused_keys, opt)
+              return if ENV['CONFIRM'] || opt[:confirm]
+              locales   = bold(opt[:locales] * ', ')
+              msg       = [
+                  red(I18n.t('i18n_tasks.remove_unused.confirm', count: unused_keys.leaves.count, locales: locales)),
+                  yellow(I18n.t('i18n_tasks.common.continue_q')),
+                  yellow('(yes/no)')
+              ] * ' '
+              exit 1 unless agree msg
             end
           end
         end

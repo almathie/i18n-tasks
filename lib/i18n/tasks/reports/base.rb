@@ -37,7 +37,7 @@ module I18n::Tasks::Reports
 
     # Sort keys by their attributes in order
     # @param [Hash] order e.g. {locale: :asc, type: :desc, key: :asc}
-    def sort_by_attr!(objects, order)
+    def sort_by_attr!(objects, order = {locale: :asc, key: :asc})
       order_keys = order.keys
       objects.sort! { |a, b|
         by = order_keys.detect { |by| a[by] != b[by] }

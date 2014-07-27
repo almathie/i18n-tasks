@@ -1,11 +1,15 @@
 # coding: utf-8
 require 'i18n/tasks/slop_command'
-require 'i18n/tasks/command/options'
+require 'i18n/tasks/command/options/command_options'
+require 'i18n/tasks/command/options/list_option'
+require 'i18n/tasks/command/options/enum_option'
 module I18n::Tasks
   module Command
     class Commander
       include ::I18n::Tasks::Logging
-      include ::I18n::Tasks::Command::Options
+      include Command::Options::CommandOptions
+      include Command::Options::ListOption
+      include Command::Options::EnumOption
 
       def initialize(i18n = nil)
         @i18n = i18n
@@ -24,6 +28,7 @@ module I18n::Tasks
           run name, opts
         rescue CommandError => e
           log_error e.message
+          log_verbose e.backtrace * "\n"
           exit 78
         ensure
           Term::ANSIColor.coloring = coloring_was
